@@ -207,7 +207,8 @@ other item as zero.
 - `test/live.cn`: tinta on a private Xvfb (`-noreset`, never the
   desktop's) and a private bus from `dbus-run-session`
   (`test/session.conf`, which names no services, so that no
-  notification server installed is started), every command, the bytes of the property by `xprop`, and by `dbus-monitor` that
+  notification server installed is started), every command, the bytes
+  of the property by `xprop`, and by `dbus-monitor` that
   `Notify` is called with "cyberpunk, dark"; skipped with a word if
   `xvfb-run`, `xprop`, `dbus-run-session` or `dbus-monitor` is missing;
   `test/check.cn` points `DBUS_SESSION_BUS_ADDRESS` at a bus that does
