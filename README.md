@@ -105,10 +105,11 @@ light, for programs whose colours are their own.
     cyberpunk  neon, hot pink above all, on violet-black by night; by day deep
            violet text on hot-pink-tinted paper, blue electric indigo, green
            teal, the whites lilac, the cursor and mark hot pink
-    phosphor   an old terminal's P1 green on black, with amber, by night; by
-           day dark green ink on greener green-barred fanfold paper, every
-           colour leaning green (blue teal, the whites green-greys), the
-           mark amber
+    phosphor   an old terminal's P1 green on black, with amber, by night:
+           pale phosphor text, so that the full green (a diff's added
+           lines) and a true red stand out; by day near-black green ink
+           on green-barred fanfold paper, a clear green and a brick red,
+           every colour leaning green, the mark amber
 
 A dark palette and a light one make a **theme**; the theme and the mode
 are set apart, each keeping the other. Catppuccin is the default. There are four.
