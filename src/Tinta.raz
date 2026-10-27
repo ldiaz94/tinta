@@ -1,0 +1,181 @@
+(* Tinta: set the desktop's palette to dark or light, Catppuccin or
+   duck, flip either, or say which it is.
+
+       tinta           print dark or light
+       tinta dark      set the theme's dark palette
+       tinta light     set its light one
+       tinta toggle    set the other mode
+       tinta catppuccin, tinta duck
+                       set that theme, in the same mode
+       tinta next      set the next theme
+       tinta theme     print the theme's name
+       tinta -h        print the usage (--help too)
+
+   The palette is the _TINTA property on the root window (Paleta
+   describes it); tinta is the only program that writes it. Programs
+   that follow it watch the root for PropertyNotify and colour
+   themselves again, so tinta has nothing to tell anyone: setting the
+   property is the whole signal.
+
+   Exit status: 0, 1 for a usage error, 2 if the display can't be
+   opened or the server doesn't keep the palette.
+
+   Depends on: Paleta; Xlib, from rx11; Files, Sys and Rt.
+   Leaves out: remembering the choice across logins, which is the
+   session's to do by running tinta at its start. *)
+module Tinta;
+import Paleta, Xlib, Files, Sys, Rt;
+import SYSTEM;
+
+const Usage = "usage: tinta [dark | light | toggle | catppuccin | duck | next | theme]\n";
+
+var
+    dpy: Xlib.Display;   (* the connection to the X server *)
+    root: Xlib.Window;   (* its root window, which holds _TINTA *)
+    atom: Xlib.Atom;     (* the atom _TINTA *)
+
+(* Writes the pieces of a line to standard error. *)
+proc say(parts: []const []const U8);
+var i: INT;
+begin
+    for i := 0 to LEN(parts) - 1 do _ := Sys.write(Sys.stderr, parts[i]); end;
+    _ := Sys.write(Sys.stderr, "\n");
+end;
+
+(* The usage, then stops: asked for (-h, --help), on standard output
+   with status 0; after a usage error, on standard error with 1. *)
+proc usage(status: INT);
+begin
+    if status = 0 then _ := Sys.write(Sys.stdout, Usage); else _ := Sys.write(Sys.stderr, Usage); end;
+    Rt.exit(status);
+end;
+
+(* Says why, and stops with status 2. *)
+proc die(why: []const U8);
+begin
+    say(["tinta: ", why]);
+    if dpy # nil then Xlib.XCloseDisplay(dpy); end;
+    Rt.exit(2);
+end;
+
+(* The connection, the root and the atom. The two messages are
+   xwire's, which the Pascal tinta spoke X through. *)
+proc open;
+begin
+    if Sys.env("DISPLAY") = "" then die("DISPLAY is not set, or is not of the form :0, unix:0 or localhost:0"); end;
+    dpy := Xlib.XOpenDisplay(nil);
+    if dpy = nil then die("cannot connect to the X server named by DISPLAY"); end;
+    root := Xlib.XRootWindow(dpy, Xlib.XDefaultScreen(dpy));
+    atom := Xlib.XInternAtom(dpy, Paleta.Atom, 0);
+end;
+
+(* The palette on the root now: Dark when there is none. A property
+   that isn't a palette is reported and counts as none, so that setting
+   a palette mends it. *)
+proc current: Paleta.Palette;
+var
+    p: Paleta.Palette;
+    typ: Xlib.Atom;
+    format: I32;
+    n, after: U64;
+    got: ^U8;
+    data: [Paleta.Items]U32;
+    i: INT;
+    e: ERROR;
+begin
+    p := Paleta.Dark;
+    if Xlib.XGetWindowProperty(dpy, root, atom, 0, Paleta.Items, 0, Xlib.AnyPropertyType, SYSTEM.ADR(typ),
+            SYSTEM.ADR(format), SYSTEM.ADR(n), SYSTEM.ADR(after), SYSTEM.ADR(got)) # Xlib.Success then
+        die("lost the connection to the X server");
+    end;
+    if typ = 0 then return p; end;
+    if typ # Xlib.XA_CARDINAL then
+        say(["tinta: the ", Paleta.Atom, " property is not of type CARDINAL; ignored"]);
+    else
+        (* Each number comes as a C long, 8 bytes, and is copied into 4. *)
+        if format # 32 then n := 0; end;
+        for i := 0 to INT(n) - 1 do data[i] := U32(got[i * 8].(INT)); end;
+        e := Paleta.decode(data[0..INT(n)], p);
+        if e # nil then say(["tinta: ", MSG(e), "; ignored"]); end;
+    end;
+    Xlib.XFree(got);
+    return p;
+end;
+
+(* Replaces the property with p, in one request, so that a client never
+   reads half of it. Then reads it back: the reply is a round trip,
+   which tells us the server has done it. Without one a program that
+   closes at once can lose the request (an Xvfb did). *)
+proc put(const p: Paleta.Palette);
+var data: [Paleta.Items]U32; longs: [Paleta.Items]U64; i: INT; q: Paleta.Palette;
+begin
+    data := Paleta.encode(p);
+    for i := 0 to Paleta.Items - 1 do longs[i] := U64(data[i]); end;
+    Xlib.XChangeProperty(dpy, root, atom, Xlib.XA_CARDINAL, 32, Xlib.PropModeReplace, ^U8(SYSTEM.ADR(longs)),
+        Paleta.Items);
+    q := current();
+    if q.mode # p.mode or q.col # p.col then die("the server did not keep the palette"); end;
+end;
+
+(* The theme named cmd, if cmd names one. *)
+proc named(cmd: []const U8): (Paleta.Theme, BOOL);
+var th: Paleta.Theme;
+begin
+    for th := Paleta.Theme.catppuccin to Paleta.Theme.duck do
+        if cmd = Paleta.themeName(th) then return th, true; end;
+    end;
+    return th, false;
+end;
+
+(* Reads the command, then sets or prints the palette. *)
+proc main*;
+var
+    i: INT;
+    cmd: []const U8;
+    p: Paleta.Palette;
+    th, want: Paleta.Theme;
+    known, isTheme: BOOL;
+begin
+    for i := 1 to ARGC() - 1 do   (* -h and --help first, before anything *)
+        if Files.arg(i) = "-h" or Files.arg(i) = "--help" then usage(0); end;
+    end;
+    if ARGC() > 2 then usage(1); end;
+    cmd := Files.arg(1);
+    want, isTheme := named(cmd);
+    if not isTheme and cmd # "" and cmd # "dark" and cmd # "light" and cmd # "toggle" and cmd # "theme"
+            and cmd # "next" then
+        usage(1);
+    end;
+
+    open;
+    (* The theme and mode now; a palette of no theme counts as Catppuccin. *)
+    p := current();
+    th, known := Paleta.themeOf(p);
+    if not known then th := Paleta.Theme.catppuccin; end;
+
+    if cmd = "dark" then
+        put(Paleta.themePalette(th, Paleta.Mode.dark));
+    elsif cmd = "light" then
+        put(Paleta.themePalette(th, Paleta.Mode.light));
+    elsif cmd = "toggle" then
+        if p.mode = Paleta.Mode.dark then
+            put(Paleta.themePalette(th, Paleta.Mode.light));
+        else
+            put(Paleta.themePalette(th, Paleta.Mode.dark));
+        end;
+    elsif cmd = "next" then
+        put(Paleta.themePalette(Paleta.Theme((INT(th) + 1) mod Paleta.Themes), p.mode));
+    elsif isTheme then
+        put(Paleta.themePalette(want, p.mode));
+    elsif cmd = "theme" then
+        _ := Sys.write(Sys.stdout, Paleta.themeName(th));
+        _ := Sys.write(Sys.stdout, "\n");
+    elsif p.mode = Paleta.Mode.dark then
+        _ := Sys.write(Sys.stdout, "dark\n");
+    else
+        _ := Sys.write(Sys.stdout, "light\n");
+    end;
+    Xlib.XCloseDisplay(dpy);
+end;
+
+end Tinta.

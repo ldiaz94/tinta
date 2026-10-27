@@ -1,0 +1,68 @@
+// test/check.cn: tinta's tests, run by robbie check from tinta's top
+// directory as
+//
+//     concha test/check.cn RAZ CONCHA
+//
+// First Paleta's own test, its main: every palette back from its
+// numbers, bad numbers refused, every contrast high enough. Then
+// build/tinta: -h and --help without a display, a usage error, no
+// display at all; and test/live.cn on a private Xvfb, never the
+// desktop's, skipped with a word if xvfb-run or xprop is missing.
+
+errexit := true
+pipefail := true
+
+if length(args) <> 2 then begin
+  echo 'usage: concha test/check.cn RAZ CONCHA' >&2
+  halt(2)
+end;
+raz := args[0]
+concha := args[1]
+t := 'build/tinta'
+
+// stops the test, saying what failed
+procedure fail(what);
+begin
+  echo "check: $what" >&2;
+  halt(1)
+end;
+
+// whether the program tool is on PATH
+function have(tool);
+var d;
+begin
+  result := false;
+  for d in split(getenv('PATH'), ':') do
+    if isfile(d + '/' + tool) then result := true
+end;
+
+mkdir -p build
+$raz -Werror -I src -o build/Paleta src/Paleta.raz
+build/Paleta >build/Paleta.log
+
+// -h and --help: the usage on standard output, status 0, no display.
+help := `env -u DISPLAY $t -h`
+if help <> `env -u DISPLAY $t --help` then fail('-h and --help differ');
+if copy(help, 1, 12) <> 'usage: tinta' then fail('-h is not the usage');
+
+errexit := false
+$t blue 2>/dev/null
+if status <> 1 then fail('a usage error did not exit 1');
+$t dark light 2>/dev/null
+if status <> 1 then fail('two words did not exit 1');
+env -u DISPLAY $t 2>/dev/null
+if status <> 2 then fail('no DISPLAY did not exit 2');
+env DISPLAY=:79 $t 2>/dev/null
+if status <> 2 then fail('no server did not exit 2');
+errexit := true
+
+for tool in ['xvfb-run', 'Xvfb', 'xprop'] do
+  if not have(tool) then begin
+    echo "check: no $tool, live tests skipped"
+    halt(0)
+  end;
+
+// -noreset: a server whose last client leaves resets and forgets every
+// property, _TINTA with it.
+xvfb-run -a -s '-screen 0 640x480x24 -nolisten tcp -noreset' $concha test/live.cn $t
+echo 'check: passed'

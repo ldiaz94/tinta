@@ -1,0 +1,332 @@
+(* Paleta: the desktop's one palette, light or dark, and how it is
+   written into an X property and read back.
+
+   Switching a Linux desktop between light and dark is miserable
+   because every program keeps its own colours and nothing tells them
+   the choice changed. Here the choice lives in one place every X
+   client can see: a property named _TINTA on the root window. The
+   tinta program writes it, and the programs that care read it at the
+   start and again whenever the X server says it changed (a
+   PropertyNotify on the root, which a client gets by selecting
+   PropertyChangeMask there).
+
+   A palette is 20 colours in a fixed order, each 0RRGGBBH:
+
+       0..7    black, red, green, yellow, blue, magenta, cyan, white:
+               the ANSI colours a terminal program asks for by number
+       8..15   the same eight bright (add Bright)
+       16      the foreground      18  the cursor
+       17      the background      19  the mark, an accent
+
+   With the colours goes a mode, dark or light, for programs whose
+   colours are their own and only need to know which kind to use.
+
+   _TINTA is of type CARDINAL, format 32, and holds Items numbers:
+
+       0       the version, Version
+       1       the mode, 0 dark or 1 light
+       2..21   the 20 slots, in order
+
+   It lives as long as the X server does. When it is absent every
+   client uses Dark, so each works on its own, under any window manager
+   or none.
+
+   The property carries the colours, not a theme's name: a name would
+   have each client keep its own table of what "latte" means. With the
+   colours in the property the palettes are defined in one place, here,
+   and a changed palette, or a third, reaches every client without one
+   of them being rebuilt.
+
+   Each program says in a constant of its own, FollowTinta, how closely
+   it follows: the colours themselves (rat, mosaico's bar and borders);
+   the mode only, with colours of its own for each; or not at all.
+   Whatever it chooses, it reads the property again on a change.
+
+   Xlib's pitfall: XGetWindowProperty and XChangeProperty take format
+   32 data as C longs, 8 bytes each on x86_64, not 4. A client copies
+   them one by one between its Xlib buffer and the U32s here; handing
+   Xlib's buffer straight to decode reads every other item as zero.
+
+   Depends on nothing; reading and writing the property is each
+   program's own, with the X binding it already has.
+
+   Leaves out: X calls, and any palette but the two themes' four. *)
+module Paleta;
+import Math, Fmt, Rt;
+
+const
+    (* The root window's property. *)
+    Atom* = "_TINTA";
+    (* Its length, in numbers of 32 bits. *)
+    Items* = 22;
+    (* Its first number, the version of its layout. *)
+    Version* = 1;
+
+    (* The slot of black; add Bright for bright black, which programs
+       print dim text in. *)
+    Black* = 0;
+    (* Red. *)
+    Red* = 1;
+    (* Green. *)
+    Green* = 2;
+    (* Yellow. *)
+    Yellow* = 3;
+    (* Blue. *)
+    Blue* = 4;
+    (* Magenta. *)
+    Magenta* = 5;
+    (* Cyan. *)
+    Cyan* = 6;
+    (* White. *)
+    White* = 7;
+    (* What makes one of the eight its bright one. *)
+    Bright* = 8;
+    (* The foreground, what text is written in. *)
+    Fg* = 16;
+    (* The background. *)
+    Bg* = 17;
+    (* The cursor. *)
+    Cursor* = 18;
+    (* The mark, an accent: selections, the focus. *)
+    Mark* = 19;
+    (* How many slots there are. *)
+    Slots* = 20;
+
+    (* decode's errors, worded for a program to print. *)
+    Short*: ERROR = "the _TINTA property is too short to hold a palette";
+    (* The property is of a later layout. *)
+    Unknown*: ERROR = "the _TINTA property is from a version of tinta this program does not know; rebuild it";
+    (* Its mode is neither 0 nor 1. *)
+    BadMode*: ERROR = "the _TINTA property names a mode that is neither dark nor light";
+
+type
+    (* Dark or light, the property's second number. *)
+    Mode* = (dark, light);
+
+    (* A dark palette and a light one that belong together. *)
+    Theme* = (catppuccin, duck);
+
+    (* The colours and the mode. *)
+    Palette* = record
+        mode*: Mode;
+        col*: [Slots]U32;   (* 0RRGGBBH, by slot *)
+    end;
+
+const
+    (* How many themes there are. *)
+    Themes* = 2;
+
+    (* Catppuccin Mocha's terminal palette, but for bright black, which
+       programs print dim text in (comments, hints): Mocha's Surface2,
+       585B70H, has a contrast ratio of 2.5:1, too faint to read, so it
+       is lightened, keeping its hue, to 4.5:1, a hair above Overlay1,
+       Mocha's own colour for comments. Black stays, since programs
+       paint backgrounds in it. The mark is its peach. *)
+    Dark*: Palette = {mode: Mode.dark, col: [
+        45475AH, 0F38BA8H, 0A6E3A1H, 0F9E2AFH, 89B4FAH, 0F5C2E7H, 94E2D5H, 0BAC2DEH,
+        81859DH, 0F38BA8H, 0A6E3A1H, 0F9E2AFH, 89B4FAH, 0F5C2E7H, 94E2D5H, 0A6ADC8H,
+        0CDD6F4H, 1E1E2EH, 0F5E0DCH, 0FAB387H]};
+
+    (* Catppuccin Latte's, with every colour a program prints text in
+       darkened toward black, keeping its hue, until it reads on the
+       background as ordinary text should: a contrast ratio (WCAG's) of
+       4.5:1. Latte's own are 3.1:1 to 4.3:1, too faint for long
+       reading; only its red passes. The two whites, which Latte makes
+       pale greys, become mid greys: programs print "white" as text
+       too. Black, the foreground and background are Latte's; the mark
+       is its peach. *)
+    Light*: Palette = {mode: Mode.light, col: [
+        5C5F77H, 0D20F39H, 327D22H, 9A6114H, 1D63EFH, 0A2518DH, 137A80H, 6B6D7EH,
+        696C82H, 0D20F39H, 327D22H, 9A6114H, 1D63EFH, 0A2518DH, 137A80H, 6B6D76H,
+        4C4F69H, 0EFF1F5H, 0DC8A78H, 0FE640BH]};
+
+    (* ladle's duck (~/r/ladle, src/Ltheme.raz), a mallard's green and
+       its bill's orange; by night a pond's deep teal. Duck names roles,
+       not ANSI colours, so each slot takes the nearest role: green its
+       strings, cyan its keywords, yellow its types, blue its numbers,
+       magenta its builtins, bright black its muted text, black its
+       rule lines. It has no red; this coral, in its tone, is added.
+       The cursor and the mark are its orange. Every text colour is at
+       6:1 or better as it stands. *)
+    DuckDark*: Palette = {mode: Mode.dark, col: [
+        1E4144H, 0F28B82H, 0A6DD8BH, 0F2B36BH, 7CC4F0H, 0D7A6E8H, 5FD3A6H, 0C5D6D2H,
+        9FB8B3H, 0F28B82H, 0A6DD8BH, 0F2B36BH, 7CC4F0H, 0D7A6E8H, 5FD3A6H, 0E8F1EEH,
+        0E8F1EEH, 0E2A2CH, 0F29B3FH, 0F29B3FH]};
+
+    (* Duck by day: the same roles on a pale green-grey, as light as
+       Latte's background, since pure white glares; each colour is
+       darkened along its hue to 6:1 or better on it. Black is its
+       foreground and the whites its muted grey, as with Latte, since
+       programs print both as text; the red is again added. The cursor
+       is a deeper orange, at 4:1, so that it shows on the page; the
+       mark keeps the bill's orange, as selections put dark text on
+       it. *)
+    DuckLight*: Palette = {mode: Mode.light, col: [
+        1B2B26H, 9E2119H, 20662AH, 864800H, 1B5884H, 75399AH, 0A6146H, 4B5A55H,
+        4B5A55H, 9E2119H, 20662AH, 864800H, 1B5884H, 75399AH, 0A6146H, 4B5A55H,
+        1B2B26H, 0EDF2EFH, 0BD5A00H, 0F28C28H]};
+
+(* The palette of theme th in mode m. *)
+proc themePalette*(th: Theme; m: Mode): Palette;
+begin
+    if th = Theme.duck then
+        if m = Mode.light then return DuckLight; end;
+        return DuckDark;
+    end;
+    if m = Mode.light then return Light; end;
+    return Dark;
+end;
+
+(* The theme p is one of, by its colours; false when it is none. *)
+proc themeOf*(const p: Palette): (Theme, BOOL);
+var th: Theme;
+begin
+    for th := Theme.catppuccin to Theme.duck do
+        if themePalette(th, p.mode).col = p.col then return th, true; end;
+    end;
+    return Theme.catppuccin, false;
+end;
+
+(* The theme's name, in lower case: catppuccin, duck. *)
+proc themeName*(th: Theme): []const U8;
+begin
+    if th = Theme.duck then return "duck"; end;
+    return "catppuccin";
+end;
+
+(* The property's numbers for p. *)
+proc encode*(const p: Palette): [Items]U32;
+var data: [Items]U32; i: INT;
+begin
+    data[0] := Version;
+    data[1] := U32(p.mode);
+    for i := 0 to Slots - 1 do data[2 + i] := p.col[i] & 0FFFFFFH; end;
+    return data;
+end;
+
+(* The palette that the numbers of _TINTA say, data; nil, or why they
+   say none, in which case p is left as it was. Only the low 24 bits
+   of a colour count. *)
+proc decode*(data: []const U32; var p: Palette): ERROR;
+var i: INT;
+begin
+    if LEN(data) < Items then return Short; end;
+    if data[0] # Version then return Unknown; end;
+    if data[1] > U32(Mode.light) then return BadMode; end;
+    p.mode := Mode(data[1]);
+    for i := 0 to Slots - 1 do p.col[i] := data[2 + i] & 0FFFFFFH; end;
+    return nil;
+end;
+
+(* ---- the test ---- *)
+
+(* Stops the test with what, unless ok. *)
+proc expect(ok: BOOL; what: []const U8);
+begin
+    if not ok then Rt.stop(what); end;
+end;
+
+(* p encoded and decoded again is p. *)
+proc roundTrip(name: []const U8; const p: Palette);
+var data: [Items]U32; q: Palette;
+begin
+    data := encode(p);
+    expect(data[0] = Version and data[1] = U32(p.mode), "a header encoded");
+    q := Light;
+    if p.mode = Mode.light then q := Dark; end;
+    expect(decode(data, q) = nil and q.mode = p.mode and q.col = p.col, name);
+end;
+
+(* data decoded is the error want, and the palette is left alone. *)
+proc bad(name: []const U8; data: []const U32; want: ERROR);
+var q: Palette;
+begin
+    q := Light;
+    expect(decode(data, q) = want and q.mode = Light.mode and q.col = Light.col, name);
+    Fmt.print("ok {}: {}\n", [Fmt.str(name), Fmt.str(MSG(want))]);
+end;
+
+(* A channel of a colour, its low byte, as WCAG 2 weighs it. *)
+proc channel(c: U32): F64;
+var v: F64;
+begin
+    v := F64(c & 0FFH) / 255.0;
+    if v <= 0.03928 then return v / 12.92; end;
+    return Math.pow((v + 0.055) / 1.055, 2.4);
+end;
+
+(* The relative luminance of 0RRGGBBH. *)
+proc luminance(rgb: U32): F64;
+begin
+    return 0.2126 * channel(rgb shr 16) + 0.7152 * channel(rgb shr 8) + 0.0722 * channel(rgb);
+end;
+
+(* WCAG's contrast ratio of a and b, 1 to 21. *)
+proc ratio(a, b: U32): F64;
+var la, lb: F64;
+begin
+    la := luminance(a);
+    lb := luminance(b);
+    if la < lb then return (lb + 0.05) / (la + 0.05); end;
+    return (la + 0.05) / (lb + 0.05);
+end;
+
+(* Every colour p prints text in reads on its background: 7:1 for the
+   foreground, 4.5:1 for slots 1 to 15. Black is free, since black on
+   black is in every dark theme; bright black is dim text, so it must
+   read. Prints every ratio. *)
+proc contrast(name: []const U8; const p: Palette);
+var i: INT; r, need: F64;
+begin
+    for i := 0 to Fg do
+        need := 4.5;
+        if i = Fg then need := 7.0; elsif i = Black then need := 0.0; end;
+        r := ratio(p.col[i], p.col[Bg]);
+        Fmt.print("{} slot {2} {5}:1\n", [Fmt.str(name), Fmt.int(i), Fmt.real(r, 2)]);
+        expect(r >= need, "a contrast too low");
+    end;
+end;
+
+(* Every theme's palettes are of the mode they claim and told apart by
+   themeOf, and a palette of no theme has none. *)
+proc themed;
+var th, got: Theme; m: Mode; p: Palette; ok: BOOL;
+begin
+    for th := Theme.catppuccin to Theme.duck do
+        for m := Mode.dark to Mode.light do
+            p := themePalette(th, m);
+            got, ok := themeOf(p);
+            expect(p.mode = m and ok and got = th, "themeOf or a mode");
+        end;
+    end;
+    p := Dark;
+    p.col[Mark] := 0;
+    _, ok := themeOf(p);
+    expect(not ok, "a palette of no theme has one");
+end;
+
+(* The test: every palette back from its numbers, bad numbers refused,
+   every palette readable, every theme known. *)
+proc main*;
+var d: [Items]U32;
+begin
+    roundTrip("dark", Dark);
+    roundTrip("light", Light);
+    roundTrip("duck dark", DuckDark);
+    roundTrip("duck light", DuckLight);
+    d := encode(Dark);
+    bad("short", d[0..Items - 1], Short);
+    bad("empty", d[0..0], Short);
+    d[0] := Version + 1;
+    bad("version", d, Unknown);
+    d[0] := Version;
+    d[1] := 2;
+    bad("mode", d, BadMode);
+    contrast("dark", Dark);
+    contrast("light", Light);
+    contrast("duck dark", DuckDark);
+    contrast("duck light", DuckLight);
+    themed;
+end;
+
+end Paleta.

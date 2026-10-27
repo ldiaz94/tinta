@@ -1,0 +1,55 @@
+// test/live.cn: tinta against an X server, run by test/check.cn
+// under xvfb-run as
+//
+//     concha test/live.cn TINTA
+//
+// Absent is dark; light sets 22 numbers starting 1, 1; toggle flips
+// the mode and keeps the theme; a theme keeps the mode; next goes
+// round; a property that isn't a palette is reported and mended.
+
+errexit := true
+pipefail := true
+
+t := args[0]
+
+// stops the test, saying what failed
+procedure fail(what);
+begin
+  echo "live: $what" >&2;
+  halt(1)
+end;
+
+if `$t` <> 'dark' then fail('absent is not dark');
+$t light
+if `$t` <> 'light' then fail('light did not stick');
+prop := `xprop -root _TINTA`
+if copy(prop, 1, 24) <> '_TINTA(CARDINAL) = 1, 1,' then fail("the property is $prop");
+if length(split(prop, ',')) <> 22 then fail('the property is not 22 numbers');
+$t toggle
+if `$t` <> 'dark' then fail('toggle did not go back to dark');
+$t toggle
+if `$t` <> 'light' then fail('toggle did not go to light');
+if `$t theme` <> 'catppuccin' then fail('the theme is not catppuccin');
+$t duck
+if (`$t theme` <> 'duck') or (`$t` <> 'light') then fail('duck did not keep light');
+$t toggle
+if (`$t theme` <> 'duck') or (`$t` <> 'dark') then fail('toggle left duck');
+$t next
+if (`$t theme` <> 'catppuccin') or (`$t` <> 'dark') then fail('next did not go to catppuccin');
+
+// The colours themselves, as xprop reads them: Catppuccin Latte's
+// foreground and background.
+$t light
+prop := `xprop -root _TINTA`
+if pos('5001065, 15725045', prop) = 0 then fail("light's colours are not Latte's: $prop");
+
+// A property of another type, then a short one: each reported,
+// counted as dark, and mended by setting a palette.
+xprop -root -f _TINTA 8s -set _TINTA latte
+why := `$t 2>&1 >/dev/null`
+if why <> 'tinta: the _TINTA property is not of type CARDINAL; ignored' then fail("a string gave: $why");
+xprop -root -f _TINTA 32c -set _TINTA '1,1,5'
+why := `$t 2>&1 >/dev/null`
+if why <> 'tinta: the _TINTA property is too short to hold a palette; ignored' then fail("a short one gave: $why");
+$t light 2>/dev/null
+if `$t 2>&1` <> 'light' then fail('setting did not mend it');

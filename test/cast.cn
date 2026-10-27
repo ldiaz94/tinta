@@ -1,0 +1,74 @@
+// test/cast.cn: doc/demo.cast and doc/img/demo.gif made again, by
+// robbie cast, from tinta's top directory as
+//
+//     concha test/cast.cn CONCHA
+//
+// CONCHA the shell, which runs this script again inside the Xvfb.
+//
+// tinta runs for real, on an Xvfb of its own with -noreset (so the
+// property outlives each command); what it prints is captured and laid
+// out as an asciicast v2 file. The times are made up, a fixed pause per
+// keystroke and per command, so the same steps give the same file.
+// rat -gif (~/r/rat) draws the cast as the GIF.
+
+errexit := true
+pipefail := true
+
+commands := ['tinta', 'tinta light', 'tinta', 'tinta theme', 'tinta duck',
+  'tinta theme', 'tinta toggle', 'tinta']
+t := 0   // the clock of the recording, in milliseconds
+
+// t as the seconds of a cast event, such as 1.250000
+function seconds;
+var ms;
+begin
+  ms := str(t mod 1000);
+  result := str(t div 1000) + '.' + copy('000', 1, 3 - length(ms)) + ms + '000'
+end;
+
+// one event: what the terminal shows, a line of the cast
+procedure event(text);
+begin
+  writeln('[', seconds(), ', "o", "', text, '"]')
+end;
+
+// the script, inside the X server: the cast's lines on standard output
+procedure inside;
+var cmd, i, out;
+begin
+  echo '{"version": 2, "width": 60, "height": 14, "title": "tinta"}'
+  event('$ ')
+  for cmd in commands do begin
+    t := t + 800
+    for i := 1 to length(cmd) do begin
+      t := t + 70
+      event(copy(cmd, i, 1))
+    end
+    t := t + 400
+    event('\r\n')
+    if length(cmd) > 5 then out := `build/tinta $(copy(cmd, 7))` else out := `build/tinta`
+    if out <> '' then begin
+      t := t + 100
+      event(out + '\r\n')
+    end
+    t := t + 300
+    event('$ ')
+  end
+end;
+
+if (length(args) = 2) and (args[1] = 'inside') then begin
+  inside
+  halt(0)
+end;
+if length(args) <> 1 then begin
+  echo 'usage: concha test/cast.cn CONCHA' >&2
+  halt(2)
+end;
+
+rm -rf build/cast
+mkdir -p build/cast doc/img
+xvfb-run -a -s '-noreset' $(args[0]) test/cast.cn $(args[0]) inside > build/cast/demo.cast
+cp build/cast/demo.cast doc/demo.cast
+writeln('cast: doc/demo.cast')
+rat -gif < doc/demo.cast > doc/img/demo.gif
+writeln('cast: doc/img/demo.gif')

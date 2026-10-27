@@ -1,0 +1,270 @@
+.Dd October 27, 2026
+.Dt TINTA 1
+.Os
+.Sh NAME
+.Nm tinta
+.Nd set the desktop's palette: its theme, dark or light
+.Sh SYNOPSIS
+.Nm
+.Op Cm dark | light | toggle | catppuccin | duck | next | theme
+.Nm
+.Fl h | Fl \-help
+.Sh DESCRIPTION
+.Nm
+keeps one palette for the whole X desktop in a
+property on the root window where every client can see it and be told
+when it changes.
+A palette is the dark or the light side of a theme, Catppuccin or
+duck; the mode and the theme are set apart, each keeping the other.
+Programs that follow it recolour themselves at once: nothing is
+restarted, and
+.Nm
+tells nobody anything, since setting the property is the whole signal.
+.Pp
+With no argument,
+.Nm
+prints
+.Li dark
+or
+.Li light ,
+whichever the palette is now.
+A display without the property is dark.
+.Bl -tag -width Ds
+.It Cm dark
+Sets the theme's dark palette.
+.It Cm light
+Sets its light one.
+.It Cm toggle
+Sets the other mode, keeping the theme.
+.It Cm catppuccin
+Sets the Catppuccin theme, keeping the mode: Mocha's terminal
+colours by night, with bright black lightened until it reads as text,
+and Latte's by day, darkened until they read as text on its
+background.
+.It Cm duck
+Sets the duck theme of
+.Sy ladle ,
+keeping the mode: a mallard's green and its bill's orange on a pale
+green-grey by day, a pond's deep teal by night.
+.It Cm next
+Sets the next theme, keeping the mode: with two, the other one.
+.It Cm theme
+Prints the theme's name,
+.Li catppuccin
+or
+.Li duck .
+A palette set by something else, of no theme, counts as Catppuccin.
+.It Fl h , Fl \-help
+Prints a usage message and exits.
+.El
+.Pp
+The palette is replaced in one request, so a program never reads half
+of one, and read back before
+.Nm
+exits, so that when it has returned the change has been made.
+.Sh THE PROPERTY
+The palette is
+.Li _TINTA
+on the root window, of type
+.Li CARDINAL ,
+format 32, 22 items:
+.Bl -column "2 to 21" -offset indent
+.It 0 Ta the version, 1
+.It 1 Ta the mode: 0 dark, 1 light
+.It 2 to 21 Ta the 20 colours, each 0xRRGGBB
+.El
+.Pp
+The colours are in this order: the eight ANSI colours (black, red,
+green, yellow, blue, magenta, cyan, white), the same eight bright,
+then the foreground, the background, the cursor and the mark, an
+accent colour.
+.Xr paleta 3
+names them and turns the numbers into a palette and back.
+.Pp
+The property lives as long as the X server does: a window manager's
+restart keeps it, a new login starts dark.
+.Sh FOLLOWING IT
+A program reads
+.Li _TINTA
+at start, selects
+.Dv PropertyChangeMask
+on the root window, and reads it again on each
+.Dv PropertyNotify
+that names it.
+Each chooses how closely to follow:
+.Bl -bullet
+.It
+the colours themselves:
+.Xr pt 1
+and
+.Xr rat 1
+take their 16 colours, foreground, background and cursor from the
+palette, and
+.Xr mosaico 1
+its bar and borders;
+.It
+the mode only, with colours of its own for each:
+.Xr tiza 1 ,
+whose drawing never changes colour, only how it is shown;
+and the browsers and GTK programs, which
+.Xr mosaico 1
+tells through the dconf key
+.Li org.gnome.desktop.interface color-scheme
+and the desktop portal;
+.It
+not at all, when its
+.Dv FollowTinta
+constant is false.
+.El
+.Pp
+A program run inside
+.Xr pt 1
+or
+.Xr rat 1
+that prints ANSI colours, such as
+.Xr ls 1
+or an editor, follows without knowing it: the terminal decides what
+the colours look like.
+.Sh EXIT STATUS
+.Bl -tag -width Ds -compact
+.It 0
+Done.
+.It 1
+A usage error: an argument other than those above, or more than
+one.
+.It 2
+The display could not be opened, or the server did not keep the
+palette.
+.El
+.Sh EXAMPLES
+Say which palette is set:
+.Bd -literal -offset indent
+$ tinta
+dark
+.Ed
+.Pp
+Flip it from a key in
+.Xr mosaico 1 ,
+which binds Mod+Shift+t to exactly this:
+.Bd -literal -offset indent
+tinta toggle
+.Ed
+.Pp
+Switch between Catppuccin and duck, which
+.Xr mosaico 1
+binds to Mod+Shift+y:
+.Bd -literal -offset indent
+tinta next
+.Ed
+.Pp
+Start every session light, in
+.Pa ~/.xinitrc
+before the window manager:
+.Bd -literal -offset indent
+tinta light
+exec mosaico
+.Ed
+.Pp
+Go dark in the evening, from a user
+.Xr crontab 5 :
+.Bd -literal -offset indent
+0 8 * * *  DISPLAY=:0 tinta light
+0 19 * * * DISPLAY=:0 tinta dark
+.Ed
+.Pp
+Under
+.Xr mosaico 1
+there is no need: it runs
+.Ic tinta light
+at sunrise and
+.Ic tinta dark
+at sunset, where
+.Xr alba 1
+says they are.
+.Pp
+Do something each time the palette changes, from a shell:
+.Xr xprop 1
+prints a line per change, and
+.Nm
+says which mode it is.
+.Bd -literal -offset indent
+xprop -root -spy _TINTA | while read -r _; do
+	echo "now $(tinta)"
+done
+.Ed
+.Pp
+Look at the numbers:
+.Bd -literal -offset indent
+$ tinta light; xprop -root _TINTA
+_TINTA(CARDINAL) = 1, 1, 6053751, 13766457, ...
+.Ed
+.Sh DIAGNOSTICS
+Messages go to standard error, after
+.Ql tinta: .
+One about the display, such as
+.Dq cannot connect to the X server named by DISPLAY ,
+comes with exit status 2.
+A
+.Li _TINTA
+property that is not a palette this
+.Nm
+can read (too short, another version, a mode that is neither dark nor
+light, or not
+.Li CARDINAL )
+is reported, counts as dark, and is replaced by the next palette set.
+.Sh SEE ALSO
+.Xr alba 1 ,
+.Xr mosaico 1 ,
+.Xr pt 1 ,
+.Xr rat 1 ,
+.Xr tiza 1 ,
+.Xr xprop 1 ,
+.Xr paleta 3 ,
+.Xr desktop 7
+.Sh STANDARDS
+The property follows the ICCCM's conventions for root window
+properties; its name begins with an underscore because it is not one
+of theirs.
+Contrast is WCAG 2's ratio.
+.Sh HISTORY
+Written in 2026 for this desktop, so that light and dark could be
+switched at the root rather than program by program.
+It was Free Pascal on xwire; it is now raz, over Xlib (libX11), built
+with
+.Xr robbie 1
+and the same in every word it prints and every byte it sets.
+.Em Tinta
+is ink, in Spanish.
+.Sh FILES
+.Bl -tag -width Ds -compact
+.It Pa ~/.local/bin/tinta
+the program, put there by
+.Ic robbie install .
+.It Pa ~/.local/share/man/man3/paleta.3
+the module's manual.
+.It Pa ~/r/tinta/src/Paleta.raz
+the palettes and the property's layout, for a raz program to import
+with
+.Fl I Pa ~/r/tinta/src .
+.El
+.Sh CAVEATS
+Only X clients that follow the property change: GTK and Qt programs
+and browsers do not; see
+.Pa README.md
+for what does.  Run
+.Ic robbie install
+in
+.Pa ~/r/tinta
+to build and install it.
+The choice is not remembered across logins; put
+.Nm
+in
+.Pa ~/.xinitrc
+for that.
+.Pp
+An X server with no clients left resets and forgets every property,
+this one too; a running session always has its window manager, but a
+bare
+.Xr Xvfb 1
+in a test needs
+.Fl noreset .

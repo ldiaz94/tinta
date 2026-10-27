@@ -1,0 +1,261 @@
+.Dd October 27, 2026
+.Dt PALETA 3
+.Os
+.Sh NAME
+.Nm Paleta
+.Nd the desktop's palette, and the root window property that carries it
+.Sh SYNOPSIS
+.Bd -literal
+import Paleta;      (* installed in ~/.raz/lib *)
+
+const
+  Atom = "_TINTA";  Items = 22;  Version = 1;
+
+  Black = 0; Red = 1; Green = 2; Yellow = 3; Blue = 4;
+  Magenta = 5; Cyan = 6; White = 7;   (* + Bright *)
+  Bright = 8;
+  Fg = 16; Bg = 17; Cursor = 18; Mark = 19;
+  Slots = 20;  Themes = 2;
+
+  Short, Unknown, BadMode: ERROR;     (* decode's errors *)
+
+type
+  Mode    = (dark, light);
+  Theme   = (catppuccin, duck);
+  Palette = record
+    mode: Mode;
+    col: [Slots]U32;                  (* 0xRRGGBB *)
+  end;
+
+const
+  Dark, Light, DuckDark, DuckLight: Palette;
+
+proc themePalette(th: Theme; m: Mode): Palette;
+proc themeOf(const p: Palette): (Theme, BOOL);
+proc themeName(th: Theme): []const U8;
+proc encode(const p: Palette): [Items]U32;
+proc decode(data: []const U32; var p: Palette): ERROR;
+.Ed
+.Pp
+Compile a program that imports it with
+.Fl I Pa ~/r/tinta/src .
+.Sh DESCRIPTION
+.Nm
+holds the palettes of
+.Xr tinta 1
+and turns one into the numbers of the
+.Li _TINTA
+property and back.
+It makes no X calls, so a program reads the property with whatever
+binding it already has and hands the items here.
+It imports nothing but the library's
+.Sy Math ,
+.Sy Fmt
+and
+.Sy Rt ,
+and its own
+.Ic main
+is its test.
+.Pp
+A palette is 20 colours, each
+.Li 0xRRGGBB ,
+in slots: 0 to 7 the ANSI colours black, red, green, yellow, blue,
+magenta, cyan and white, 8 to 15 the same bright (add
+.Dv Bright ) ,
+.Dv Fg
+the foreground,
+.Dv Bg
+the background,
+.Dv Cursor
+the cursor, and
+.Dv Mark
+an accent, which
+.Xr rat 1
+and
+.Xr pt 1
+draw their tab bar and selections in.
+With the colours goes a mode, for programs that keep colours of their
+own and only need to know which kind to use.
+.Pp
+.Dv Dark
+is Catppuccin Mocha's terminal palette, with its peach as the mark
+and bright black, the colour of dim text, lightened, keeping its hue,
+to a contrast ratio of 4.5:1 against the background.
+.Dv Light
+is Latte's, with every colour but black and red darkened, keeping
+its hue, until each has a contrast ratio of 4.5:1 against the
+background, what WCAG asks of ordinary text; the foreground has 7:1.
+.Pp
+Two palettes, one dark and one light, make a theme.
+.Dv Dark
+and
+.Dv Light
+are the theme
+.Dv catppuccin ;
+.Dv DuckDark
+and
+.Dv DuckLight
+are
+.Dv duck ,
+the duck theme of
+.Sy ladle :
+a mallard's green and its bill's orange, on a pale green-grey by day and a
+pond's deep teal by night.
+Duck names roles, not ANSI colours, so each slot takes the nearest
+role (strings green, keywords cyan, types yellow, numbers blue),
+and a red in its tone is added; its colours read at 6:1 or better.
+The property carries colours, not a theme, so
+.Fn themeOf
+tells the theme from them.
+.Pp
+The property is
+.Dv Atom
+on the root window, type
+.Li CARDINAL
+(atom 6), format 32,
+.Dv Items
+items: the version, the mode (0 dark, 1 light), then the 20 slots in
+order.
+When it is absent, use
+.Dv Dark .
+.Ss Routines
+.Bl -tag -width Ds
+.It Fn themePalette th m
+The palette of theme
+.Fa th
+in mode
+.Fa m .
+.It Fn themeOf p
+The theme whose palette for
+.Fa p Ns 's
+mode has exactly
+.Fa p Ns 's
+colours, and true; or false when there is none.
+.It Fn themeName th
+The theme's name in lower case:
+.Li catppuccin
+or
+.Li duck .
+.It Fn encode p
+The
+.Dv Items
+numbers of
+.Fa p ,
+ready for
+.Fn XChangeProperty .
+.It Fn decode data p
+Reads
+.Fa data ,
+as the property returned it, into
+.Fa p ,
+and returns nil, or an error.
+Items beyond
+.Dv Items
+and the top byte of each colour are ignored.
+On an error
+.Fa p
+is left as it was, so a caller that set it to
+.Dv Dark
+first can use it either way.
+.El
+.Ss Following the palette
+Read
+.Li _TINTA
+once at start; select
+.Dv PropertyChangeMask
+on the root; on each
+.Dv PropertyNotify
+whose atom is
+.Li _TINTA ,
+read it again and redraw.
+A deleted property is the dark palette.
+A program chooses how closely to follow, and says so in a constant
+.Dv FollowTinta :
+the colours
+.Pq Xr rat 1 , Xr pt 1 , Xr mosaico 1 ,
+the mode only, with its own colours for each
+.Pq Xr tiza 1 ,
+or not at all.
+.Sh RETURN VALUES
+.Fn decode
+returns nil, or
+.Bl -tag -width BadMode -compact
+.It Dv Short
+fewer than
+.Dv Items
+items;
+.It Dv Unknown
+item 0 is not
+.Dv Version ;
+.It Dv BadMode
+item 1 is neither 0 nor 1.
+.El
+.Pp
+Each is a sentence for a program to print, as
+.Fn MSG
+gives it.
+.Sh EXAMPLES
+Reading the property with Xlib, whose items come as C longs:
+.Bd -literal -offset indent
+data: [Paleta.Items]U32;
+
+pal := Paleta.Dark;
+if XGetWindowProperty(dpy, root, atom, 0, Paleta.Items, 0,
+    XA_CARDINAL, ADR(typ), ADR(fmt), ADR(n), ADR(after),
+    ADR(got)) = Success then
+  (* 8 bytes each: copy them into 4 *)
+  for i := 0 to INT(n) - 1 do data[i] := U32(got[i * 8].(INT)); end;
+  e := Paleta.decode(data[0..INT(n)], pal);
+  XFree(got);
+end;
+.Ed
+.Pp
+Setting it, as
+.Xr tinta 1
+does:
+.Bd -literal -offset indent
+data := Paleta.encode(Paleta.Light);
+(* copy into C longs, then XChangeProperty(..., 32, ...) *)
+.Ed
+.Pp
+Using a slot:
+.Bd -literal -offset indent
+barBg := pal.col[Paleta.Bg];
+urgent := pal.col[Paleta.Red];
+dim := pal.col[Paleta.Black + Paleta.Bright];
+.Ed
+.Sh SEE ALSO
+.Xr tinta 1 ,
+.Xr xprop 1 ,
+.Xr desktop 7
+.Sh STANDARDS
+The contrast ratios are WCAG 2.1's, section 1.4.3 and 1.4.6.
+The colours are Catppuccin's, version 1.
+.Sh HISTORY
+Written in 2026 with
+.Xr tinta 1 ,
+first as a Pascal unit and now as a raz module.
+.Em Paleta
+is palette, in Spanish.
+.Xr rat 1
+and
+.Xr mosaico 1
+still carry their own copies of the decoding, which read the same
+property.
+.Sh CAVEATS
+Xlib's
+.Fn XGetWindowProperty
+returns format-32 data as C
+.Vt long ,
+eight bytes each on x86_64, not four.
+Copy the items one by one into a
+.Vt U32
+array, as above; passing Xlib's buffer straight to
+.Fn decode
+reads every other item as zero, and fails with
+.Dv Unknown
+or, worse, not at all.
+.Pp
+A change of palette is one
+.Dv PropertyNotify ;
+a program that reads the property only at start never sees it.

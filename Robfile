@@ -1,0 +1,59 @@
+# Robfile for tinta: one palette for the X desktop, light or dark.
+#
+# tinta is built over rx11's Xlib, which raz finds installed in
+# ~/.raz/lib (rx11's make install). Paleta, the palettes and the
+# property's layout, is a module of its own; install puts it in
+# ~/.raz/lib too, for rat, mosaico and any program to import.
+
+raz    = /home/luis/r/raz/raz
+pretty = /home/luis/r/raz/tools/Pretty.raz
+concha = /home/luis/r/concha/build/concha
+rloc   = /home/luis/r/rloc/build/rloc
+prefix = /home/luis/.local
+razlib = /home/luis/.raz/lib
+pages  = doc/tinta.1 doc/paleta.3
+
+# The program.
+build/tinta: src/*.raz {raz}
+    mkdir -p build
+    {raz} -Werror -I src -o {target} src/Tinta.raz
+
+# Paleta's own test, then tinta without a display and on an Xvfb of the test's own, then the manuals.
+task check: build/tinta
+    {concha} test/check.cn {raz} {concha}
+    for p in {pages}; do
+        out=$(groff -mandoc -Tutf8 -ww -z "$p" 2>&1)
+        test -z "$out" || { echo "$p: $out"; exit 1; }
+    done
+
+# The sources as raz's Pretty lays them out.
+task fmt:
+    mkdir -p build
+    {raz} -o build/Pretty {pretty}
+    fail=0
+    for f in src/*.raz; do
+        build/Pretty "$f" | cmp -s - "$f" || { echo "not formatted: $f"; fail=1; }
+    done
+    test "$fail" = 0
+
+# Lines of code and of comment, by rloc.
+task loc:
+    {rloc} src/*.raz
+
+# doc/demo.cast and doc/img/demo.gif made again, by a script on an Xvfb.
+task cast: build/tinta
+    {concha} test/cast.cn {concha}
+
+# tinta and its manuals into {prefix}, and Paleta into {razlib} for other programs to import.
+task install: build/tinta
+    install -Dm755 build/tinta "$DESTDIR{prefix}/bin/tinta"
+    install -Dm644 doc/tinta.1 "$DESTDIR{prefix}/share/man/man1/tinta.1"
+    install -Dm644 doc/paleta.3 "$DESTDIR{prefix}/share/man/man3/paleta.3"
+    # A link, not a copy: raz refuses two files of one module, and this
+    # one is also in src/ when tinta itself is built.
+    mkdir -p "$DESTDIR{razlib}"
+    ln -sf "$PWD/src/Paleta.raz" "$DESTDIR{razlib}/Paleta.raz"
+
+# What install put there, removed.
+task uninstall:
+    rm -f "$DESTDIR{prefix}/bin/tinta" "$DESTDIR{prefix}/share/man/man1/tinta.1" "$DESTDIR{prefix}/share/man/man3/paleta.3" "$DESTDIR{razlib}/Paleta.raz"

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>tinta: an ink drop, half dark and half light</title>
+  <defs>
+    <clipPath id="tinta-drop"><path d="M64 10 C64 10 26 54 26 80 A38 38 0 0 0 102 80 C102 54 64 10 64 10 Z"/></clipPath>
+  </defs>
+  <rect x="2" y="2" width="124" height="124" rx="22" fill="#45475a"/>
+  <g clip-path="url(#tinta-drop)">
+    <rect x="0" y="0" width="64" height="128" fill="#1e1e2e"/>
+    <rect x="64" y="0" width="64" height="128" fill="#eff1f5"/>
+  </g>
+  <path d="M64 10 C64 10 26 54 26 80 A38 38 0 0 0 102 80 C102 54 64 10 64 10 Z" fill="none" stroke="#fab387" stroke-width="3"/>
+  <path d="M42 84 A22 22 0 0 0 54 104" fill="none" stroke="#cdd6f4" stroke-width="4" stroke-linecap="round"/>
+  <path d="M86 84 A22 22 0 0 1 74 104" fill="none" stroke="#4c4f69" stroke-width="4" stroke-linecap="round"/>
+</svg>
