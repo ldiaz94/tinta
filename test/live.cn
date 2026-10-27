@@ -35,7 +35,16 @@ if (`$t theme` <> 'duck') or (`$t` <> 'light') then fail('duck did not keep ligh
 $t toggle
 if (`$t theme` <> 'duck') or (`$t` <> 'dark') then fail('toggle left duck');
 $t next
-if (`$t theme` <> 'catppuccin') or (`$t` <> 'dark') then fail('next did not go to catppuccin');
+if (`$t theme` <> 'cyberpunk') or (`$t` <> 'dark') then fail('next did not go to cyberpunk');
+$t next
+if `$t theme` <> 'phosphor' then fail('next did not go to phosphor');
+$t light
+if (`$t theme` <> 'phosphor') or (`$t` <> 'light') then fail('light left phosphor');
+$t next
+if (`$t theme` <> 'catppuccin') or (`$t` <> 'light') then fail('next did not go round to catppuccin');
+$t cyberpunk
+if `$t theme` <> 'cyberpunk' then fail('cyberpunk was not set');
+$t catppuccin
 
 // The colours themselves, as xprop reads them: Catppuccin Latte's
 // foreground and background.

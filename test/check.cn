@@ -37,7 +37,7 @@ begin
 end;
 
 mkdir -p build
-$raz -Werror -I src -o build/Paleta src/Paleta.raz
+env RAZ_PATH= $raz -Werror -o build/Paleta src/Paleta.raz
 build/Paleta >build/Paleta.log
 
 // -h and --help: the usage on standard output, status 0, no display.

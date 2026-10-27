@@ -25,14 +25,16 @@ give the same file; `rat -gif` draws it as the GIF.
 
 ## Get it
 
-tinta needs raz and rx11 (its Xlib binding, installed into
-`~/.raz/lib`) and libX11. `robbie check` also needs `xvfb-run`, `xprop`
-and `groff`.
+tinta needs raz, libX11 and rx11's checkout (its Xlib binding) beside
+this directory, as `~/r/rx11`; `robbie rx11=PATH` names another.
+`robbie check` also needs `xvfb-run`, `xprop` and `groff`. The build
+sets `RAZ_PATH` empty, so raz never sees `~/.raz/lib`, where `install`
+puts a copy of Paleta that a second one would clash with.
 
     cd ~/r/tinta
     robbie               # build/tinta
     robbie check         # Paleta's test, tinta on a private Xvfb, the manuals
-    robbie install       # tinta and its manuals into ~/.local, Paleta into ~/.raz/lib
+    robbie install       # tinta and its manuals into ~/.local, a copy of Paleta into ~/.raz/lib
 
 ## Learn it
 
@@ -42,8 +44,8 @@ and `groff`.
 | `tinta dark` | set the theme's dark palette |
 | `tinta light` | set its light one |
 | `tinta toggle` | set the other mode |
-| `tinta catppuccin`, `tinta duck` | set that theme, in the same mode |
-| `tinta next` | set the next theme |
+| `tinta catppuccin`, `tinta duck`, `tinta cyberpunk`, `tinta phosphor` | set that theme, in the same mode |
+| `tinta next` | set the next theme: catppuccin, duck, cyberpunk, phosphor, and round |
 | `tinta theme` | print the theme's name |
 | `tinta -h`, `--help` | print the usage |
 
@@ -91,9 +93,13 @@ light, for programs whose colours are their own.
     light  Catppuccin Latte's, its colours darkened to read as text
     duck   ladle's duck theme: a mallard's green and orange on a pale grey by
            day, a pond's deep teal by night
+    cyberpunk  neon, hot pink above all, on violet-black by night; by day the
+           same neon deepened on a pale pink-white
+    phosphor   an old terminal's P1 green on black, with amber, by night; by
+           day a teleprinter's green-barred fanfold paper in dark green ink
 
 A dark palette and a light one make a **theme**; the theme and the mode
-are set apart, each keeping the other. Catppuccin is the default.
+are set apart, each keeping the other. Catppuccin is the default. There are four.
 
 The property is `_TINTA` on the root window: `CARDINAL`, format 32, 22
 items, a version (1), the mode (0 dark, 1 light), then the 20 colours as
@@ -115,9 +121,10 @@ changed palette, or a third, reaches every program without one of them
 being rebuilt.
 
 `Paleta` makes no X calls and imports only the library, so any program
-reads the property with the X binding it has: `robbie install` puts
-`Paleta.raz` in `~/.raz/lib`, where raz finds it, and a program says
-`import Paleta`. Its `main` is its test.
+reads the property with the X binding it has: `robbie install` puts a
+plain copy of `Paleta.raz` in `~/.raz/lib`, where raz finds it, and a
+program says `import Paleta`. A change to Paleta reaches rat and mosaico
+by `robbie install` and a rebuild of each. Its `main` is its test.
 
 **2. One writer: `src/Tinta.raz`.** Only `tinta` sets the property; the
 window manager only binds a key that runs it, so there is one place to
@@ -141,8 +148,8 @@ constant `FollowTinta`:
 te, htop, `ls --color` and anything else in a terminal follow without
 knowing: they ask for ANSI colour 1 and the terminal decides what red
 looks like. pt, tiza, arnold and the pgc games are Pascal and read the
-same property unchanged. rat (`Palette.raz`) and mosaico (`Mpalette.raz`)
-still carry their own copies of the decoding rather than import Paleta.
+same property unchanged. rat and mosaico import the installed Paleta
+rather than carry their own copies of the decoding.
 
 **The Xlib pitfall.** `XGetWindowProperty` returns format-32 data as C
 longs, 8 bytes each on x86_64, not 4. Copy them one by one into `U32`s
@@ -154,7 +161,7 @@ other item as zero.
 - **Same as the Pascal tinta.** Output, messages, exit codes and the
   property's bytes were compared with the Pascal program's on Xvfb,
   byte for byte.
-- **Readable in both.** The test holds both themes' palettes to WCAG 2's
+- **Readable in both.** The test holds every theme's palettes to WCAG 2's
   contrast ratio against their own background: 7:1 for the foreground,
   4.5:1 (what WCAG asks of ordinary text) for colours 1 to 7 and 9 to 15
   (black is exempt). Programs print "white" as ordinary text, so Latte's
@@ -183,7 +190,7 @@ other item as zero.
 `robbie loc` (by `rloc`):
 
     language    files  blank  comment  code
-    raz             2     56      156   301
+    raz             2     62      173   322
 
 The program is dynamically linked to libX11, through rx11.
 
@@ -195,8 +202,7 @@ The program is dynamically linked to libX11, through rx11.
   in `~/.xinitrc`.
 - A schedule: use cron, or mosaico, which runs `tinta light` at sunrise
   and `tinta dark` at sunset.
-- More than two themes, and a configuration file.
-- Making rat and mosaico import Paleta.
+- More than four themes, and a configuration file.
 
 ## When to use it
 

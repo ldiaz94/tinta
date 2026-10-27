@@ -1,11 +1,11 @@
-(* Tinta: set the desktop's palette to dark or light, Catppuccin or
-   duck, flip either, or say which it is.
+(* Tinta: set the desktop's palette to dark or light, in one of four
+   themes, flip either, or say which it is.
 
        tinta           print dark or light
        tinta dark      set the theme's dark palette
        tinta light     set its light one
        tinta toggle    set the other mode
-       tinta catppuccin, tinta duck
+       tinta catppuccin, tinta duck, tinta cyberpunk, tinta phosphor
                        set that theme, in the same mode
        tinta next      set the next theme
        tinta theme     print the theme's name
@@ -27,7 +27,7 @@ module Tinta;
 import Paleta, Xlib, Files, Sys, Rt;
 import SYSTEM;
 
-const Usage = "usage: tinta [dark | light | toggle | catppuccin | duck | next | theme]\n";
+const Usage = "usage: tinta [dark | light | toggle | catppuccin | duck | cyberpunk | phosphor | next | theme]\n";
 
 var
     dpy: Xlib.Display;   (* the connection to the X server *)
@@ -121,7 +121,7 @@ end;
 proc named(cmd: []const U8): (Paleta.Theme, BOOL);
 var th: Paleta.Theme;
 begin
-    for th := Paleta.Theme.catppuccin to Paleta.Theme.duck do
+    for th := Paleta.Theme.catppuccin to Paleta.Theme.phosphor do
         if cmd = Paleta.themeName(th) then return th, true; end;
     end;
     return th, false;

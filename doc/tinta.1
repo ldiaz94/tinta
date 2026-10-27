@@ -6,7 +6,10 @@
 .Nd set the desktop's palette: its theme, dark or light
 .Sh SYNOPSIS
 .Nm
-.Op Cm dark | light | toggle | catppuccin | duck | next | theme
+.Oo
+.Cm dark | light | toggle | catppuccin | duck |
+.Cm cyberpunk | phosphor | next | theme
+.Oc
 .Nm
 .Fl h | Fl \-help
 .Sh DESCRIPTION
@@ -14,8 +17,8 @@
 keeps one palette for the whole X desktop in a
 property on the root window where every client can see it and be told
 when it changes.
-A palette is the dark or the light side of a theme, Catppuccin or
-duck; the mode and the theme are set apart, each keeping the other.
+A palette is the dark or the light side of a theme, Catppuccin,
+duck, cyberpunk or phosphor; the mode and the theme are set apart, each keeping the other.
 Programs that follow it recolour themselves at once: nothing is
 restarted, and
 .Nm
@@ -46,13 +49,25 @@ Sets the duck theme of
 .Sy ladle ,
 keeping the mode: a mallard's green and its bill's orange on a pale
 green-grey by day, a pond's deep teal by night.
+.It Cm cyberpunk
+Sets the cyberpunk theme, keeping the mode: neon, hot pink above all,
+on violet-black by night, and by day the same neon deepened on a pale
+pink-white.
+.It Cm phosphor
+Sets the phosphor theme, keeping the mode: an old terminal's P1 green
+on black with amber by night, and by day a teleprinter's green-barred
+fanfold paper in dark green ink.
 .It Cm next
-Sets the next theme, keeping the mode: with two, the other one.
+Sets the next theme, keeping the mode: catppuccin, duck, cyberpunk,
+phosphor, then catppuccin again.
 .It Cm theme
 Prints the theme's name,
-.Li catppuccin
+one of
+.Li catppuccin ,
+.Li duck ,
+.Li cyberpunk
 or
-.Li duck .
+.Li phosphor .
 A palette set by something else, of no theme, counts as Catppuccin.
 .It Fl h , Fl \-help
 Prints a usage message and exits.
@@ -150,7 +165,7 @@ which binds Mod+Shift+t to exactly this:
 tinta toggle
 .Ed
 .Pp
-Switch between Catppuccin and duck, which
+Step through the themes, which
 .Xr mosaico 1
 binds to Mod+Shift+y:
 .Bd -literal -offset indent
@@ -240,12 +255,13 @@ is ink, in Spanish.
 .It Pa ~/.local/bin/tinta
 the program, put there by
 .Ic robbie install .
+.It Pa ~/.raz/lib/Paleta.raz
+a plain copy of the module, put there by the same, for a raz program to
+import.
 .It Pa ~/.local/share/man/man3/paleta.3
 the module's manual.
 .It Pa ~/r/tinta/src/Paleta.raz
-the palettes and the property's layout, for a raz program to import
-with
-.Fl I Pa ~/r/tinta/src .
+the palettes and the property's layout.
 .El
 .Sh CAVEATS
 Only X clients that follow the property change: GTK and Qt programs

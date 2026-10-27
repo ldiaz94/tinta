@@ -15,13 +15,13 @@ const
   Magenta = 5; Cyan = 6; White = 7;   (* + Bright *)
   Bright = 8;
   Fg = 16; Bg = 17; Cursor = 18; Mark = 19;
-  Slots = 20;  Themes = 2;
+  Slots = 20;  Themes = 4;
 
   Short, Unknown, BadMode: ERROR;     (* decode's errors *)
 
 type
   Mode    = (dark, light);
-  Theme   = (catppuccin, duck);
+  Theme   = (catppuccin, duck, cyberpunk, phosphor);
   Palette = record
     mode: Mode;
     col: [Slots]U32;                  (* 0xRRGGBB *)
@@ -29,6 +29,7 @@ type
 
 const
   Dark, Light, DuckDark, DuckLight: Palette;
+  CyberDark, CyberLight, PhosphorDark, PhosphorLight: Palette;
 
 proc themePalette(th: Theme; m: Mode): Palette;
 proc themeOf(const p: Palette): (Theme, BOOL);
@@ -37,8 +38,13 @@ proc encode(const p: Palette): [Items]U32;
 proc decode(data: []const U32; var p: Palette): ERROR;
 .Ed
 .Pp
-Compile a program that imports it with
-.Fl I Pa ~/r/tinta/src .
+Compile a program that imports it as usual:
+.Ic robbie install
+in
+.Pa ~/r/tinta
+puts a plain copy in
+.Pa ~/.raz/lib ,
+where raz finds it.
 .Sh DESCRIPTION
 .Nm
 holds the palettes of
@@ -104,6 +110,29 @@ pond's deep teal by night.
 Duck names roles, not ANSI colours, so each slot takes the nearest
 role (strings green, keywords cyan, types yellow, numbers blue),
 and a red in its tone is added; its colours read at 6:1 or better.
+Cyberpunk, the pair
+.Dv CyberDark
+and
+.Dv CyberLight ,
+is a city's neon:
+.Dv CyberDark
+has hot pink above all, with fluorescent cyan and acid green, on a
+violet-black sky, and
+.Dv CyberLight
+the same neon deepened along its hue on a pale pink-white, with deep
+purple for text.
+Phosphor, the pair
+.Dv PhosphorDark
+and
+.Dv PhosphorLight ,
+is an old terminal:
+.Dv PhosphorDark
+is P1 green on black glass, with amber for the mark and the whites
+leaning green, and
+.Dv PhosphorLight
+a teleprinter's green-barred fanfold paper printed in dark green ink.
+Every text colour of every palette has a contrast ratio of 4.5:1 or
+better, and the foreground 7:1 or better; the test checks it.
 The property carries colours, not a theme, so
 .Fn themeOf
 tells the theme from them.
@@ -133,9 +162,12 @@ mode has exactly
 colours, and true; or false when there is none.
 .It Fn themeName th
 The theme's name in lower case:
-.Li catppuccin
+one of
+.Li catppuccin ,
+.Li duck ,
+.Li cyberpunk
 or
-.Li duck .
+.Li phosphor .
 .It Fn encode p
 The
 .Dv Items
@@ -240,8 +272,8 @@ is palette, in Spanish.
 .Xr rat 1
 and
 .Xr mosaico 1
-still carry their own copies of the decoding, which read the same
-property.
+import the installed copy rather than carry their own copies of
+the decoding.
 .Sh CAVEATS
 Xlib's
 .Fn XGetWindowProperty

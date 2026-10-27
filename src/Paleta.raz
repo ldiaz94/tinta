@@ -104,7 +104,7 @@ type
     Mode* = (dark, light);
 
     (* A dark palette and a light one that belong together. *)
-    Theme* = (catppuccin, duck);
+    Theme* = (catppuccin, duck, cyberpunk, phosphor);
 
     (* The colours and the mode. *)
     Palette* = record
@@ -114,7 +114,7 @@ type
 
 const
     (* How many themes there are. *)
-    Themes* = 2;
+    Themes* = 4;
 
     (* Catppuccin Mocha's terminal palette, but for bright black, which
        programs print dim text in (comments, hints): Mocha's Surface2,
@@ -166,32 +166,68 @@ const
         4B5A55H, 9E2119H, 20662AH, 864800H, 1B5884H, 75399AH, 0A6146H, 4B5A55H,
         1B2B26H, 0EDF2EFH, 0BD5A00H, 0F28C28H]};
 
+    (* Cyberpunk by night: a city's neon on a violet-black sky. Hot
+       pink is its own colour, the magenta, the cursor and the mark;
+       the rest are as fluorescent as they can be, cyan and acid green
+       above all, and every one reads at 4.5:1 or better on the sky.
+       The whites are lilac, so that plain text sits in the night. *)
+    CyberDark*: Palette = {mode: Mode.dark, col: [
+        2A1A3DH, 0FF3860H, 39FF88H, 0FCEE0AH, 4FA0FFH, 0FF2FD0H, 00F0FFH, 0D8C8F0H,
+        8F7FADH, 0FF6B8BH, 7BFFB0H, 0FFF57AH, 7AB8FFH, 0FF7AE6H, 7AF8FFH, 0FFFFFFH,
+        0F4E6FFH, 0D0221H, 0FF2FD0H, 0FF2A9DH]};
+
+    (* Cyberpunk by day: the same neon, deepened along its hue to 4.5:1
+       or better on a pale pink-white, with deep purple for text. *)
+    CyberLight*: Palette = {mode: Mode.light, col: [
+        3A2A4AH, 0C4003AH, 007A45H, 806000H, 1F4FD0H, 0C0168FH, 006E85H, 6A5A7AH,
+        6E5C80H, 0D6004AH, 006E3EH, 8A6A00H, 2A5CE0H, 0B0127FH, 007890H, 5A4A6AH,
+        2B0A3DH, 0FBEEFAH, 0E0168FH, 0FF2A9DH]};
+
+    (* Phosphor by night: an old terminal's P1 green on black glass.
+       Text is the phosphor green; amber, the other phosphor, is the
+       yellow and the mark; the other colours keep their hues, so that
+       red still warns, but lean to the green, and the whites are green
+       too. *)
+    PhosphorDark*: Palette = {mode: Mode.dark, col: [
+        143014H, 0FF6040H, 33FF66H, 0FFB000H, 4FA8FFH, 0E070FFH, 40FFD0H, 0A8E8B0H,
+        4F9A5FH, 0FF8A6AH, 8AFF9AH, 0FFD060H, 80C8FFH, 0F0A0FFH, 90FFE0H, 0E0FFE4H,
+        33FF66H, 050A05H, 33FF66H, 0FFB000H]};
+
+    (* Phosphor by day: a teleprinter's fanfold paper, green-barred,
+       printed in dark green ink; every colour is darkened to 4.5:1 or
+       better on the pale green. The mark stays amber. *)
+    PhosphorLight*: Palette = {mode: Mode.light, col: [
+        2A4A2EH, 0A8301AH, 1D6B2AH, 7A5200H, 1F5A8AH, 7A3A8AH, 0B6A5AH, 4F6A52H,
+        4F6A52H, 0B83A20H, 1F7530H, 845A00H, 23649AH, 86429AH, 0D7464H, 3F5A42H,
+        0F2A12H, 0E8F5E4H, 1D6B2AH, 0FFB000H]};
+
+    (* Each theme's two palettes, dark then light. *)
+    Pairs: [Themes][2]Palette = [[Dark, Light], [DuckDark, DuckLight], [CyberDark, CyberLight],
+        [PhosphorDark, PhosphorLight]];
+
+    (* Each theme's name, as tinta takes it. *)
+    Names: [Themes][]const U8 = ["catppuccin", "duck", "cyberpunk", "phosphor"];
+
 (* The palette of theme th in mode m. *)
 proc themePalette*(th: Theme; m: Mode): Palette;
 begin
-    if th = Theme.duck then
-        if m = Mode.light then return DuckLight; end;
-        return DuckDark;
-    end;
-    if m = Mode.light then return Light; end;
-    return Dark;
+    return Pairs[INT(th)][INT(m)];
 end;
 
 (* The theme p is one of, by its colours; false when it is none. *)
 proc themeOf*(const p: Palette): (Theme, BOOL);
-var th: Theme;
+var i: INT;
 begin
-    for th := Theme.catppuccin to Theme.duck do
-        if themePalette(th, p.mode).col = p.col then return th, true; end;
+    for i := 0 to Themes - 1 do
+        if Pairs[i][INT(p.mode)].col = p.col then return Theme(i), true; end;
     end;
     return Theme.catppuccin, false;
 end;
 
-(* The theme's name, in lower case: catppuccin, duck. *)
+(* The theme's name, in lower case: catppuccin, duck, cyberpunk, phosphor. *)
 proc themeName*(th: Theme): []const U8;
 begin
-    if th = Theme.duck then return "duck"; end;
-    return "catppuccin";
+    return Names[INT(th)];
 end;
 
 (* The property's numbers for p. *)
@@ -292,7 +328,7 @@ end;
 proc themed;
 var th, got: Theme; m: Mode; p: Palette; ok: BOOL;
 begin
-    for th := Theme.catppuccin to Theme.duck do
+    for th := Theme.catppuccin to Theme.phosphor do
         for m := Mode.dark to Mode.light do
             p := themePalette(th, m);
             got, ok := themeOf(p);
@@ -314,6 +350,10 @@ begin
     roundTrip("light", Light);
     roundTrip("duck dark", DuckDark);
     roundTrip("duck light", DuckLight);
+    roundTrip("cyberpunk dark", CyberDark);
+    roundTrip("cyberpunk light", CyberLight);
+    roundTrip("phosphor dark", PhosphorDark);
+    roundTrip("phosphor light", PhosphorLight);
     d := encode(Dark);
     bad("short", d[0..Items - 1], Short);
     bad("empty", d[0..0], Short);
@@ -326,6 +366,10 @@ begin
     contrast("light", Light);
     contrast("duck dark", DuckDark);
     contrast("duck light", DuckLight);
+    contrast("cyberpunk dark", CyberDark);
+    contrast("cyberpunk light", CyberLight);
+    contrast("phosphor dark", PhosphorDark);
+    contrast("phosphor light", PhosphorLight);
     themed;
 end;
 
