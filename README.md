@@ -108,8 +108,8 @@ light, for programs whose colours are their own.
     phosphor   an old terminal's P1 green on black, with amber, by night:
            pale phosphor text, so that the full green (a diff's added
            lines) and a true red stand out; by day near-black green ink
-           on green-barred fanfold paper, a clear green and a brick red,
-           every colour leaning green, the mark amber
+           on green-barred fanfold paper, a clear green and a true red,
+           the other colours vivid, the mark amber
 
 A dark palette and a light one make a **theme**; the theme and the mode
 are set apart, each keeping the other. Catppuccin is the default. There are four.
@@ -186,13 +186,15 @@ other item as zero.
 - **Same as the Pascal tinta.** Output, messages, exit codes and the
   property's bytes were compared with the Pascal program's on Xvfb,
   byte for byte.
-- **Readable in both.** The test holds every theme's palettes to WCAG 2's
-  contrast ratio against their own background: 7:1 for the foreground,
-  4.5:1 (what WCAG asks of ordinary text) for colours 1 to 7 and 9 to 15
-  (black is exempt). Programs print "white" as ordinary text, so Latte's
-  pale greys for white failed; so did every other Latte colour but red
-  (3.1:1 to 4.3:1). They are darkened toward black just enough, keeping
-  their hue.
+- **Readable in both.** The test holds every theme's palettes to WCAG
+  2's contrast ratio against their own background: 7:1 for the
+  foreground, 4.5:1 (what WCAG asks of ordinary text) for colours 1 to
+  15 (black is exempt). Latte's own colours failed (3.1:1 to 4.3:1), but
+  darkening them far, to 7:1, turned them to mud: on a pale page,
+  colours told apart need to be vivid. So each light palette's colours
+  keep their hue, sit at 5:1 (the bright ones 4.6:1) with as much chroma
+  as sRGB allows, and the test caps them at 6:1; the foreground is
+  darkened to 11:1 to stand apart from them.
 - **Bad data is refused, not guessed.** A property that is too short, of
   another version or of a mode that is neither is reported, counts as
   dark, and is replaced by the next palette set.

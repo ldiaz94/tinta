@@ -128,17 +128,19 @@ const
         0CDD6F4H, 1E1E2EH, 0F5E0DCH, 0FAB387H]};
 
     (* Catppuccin Latte's, with every colour a program prints text in
-       darkened toward black, keeping its hue, until it reads on the
-       background as ordinary text should: a contrast ratio (WCAG's) of
-       4.5:1. Latte's own are 3.1:1 to 4.3:1, too faint for long
-       reading; only its red passes. The two whites, which Latte makes
-       pale greys, become mid greys: programs print "white" as text
-       too. Black, the foreground and background are Latte's; the mark
-       is its peach. *)
+       made vivid: its hue kept, its lightness set for a contrast ratio
+       (WCAG's) of 5:1 on the background (4.6:1 for the bright ones),
+       and its chroma as high as sRGB allows there. Latte's own are
+       3.1:1 to 4.3:1, too faint for long reading; darker still, they
+       turn to mud, all one near-black with the text. The two whites,
+       which Latte makes pale greys, become mid greys: programs print
+       "white" as text too. The foreground is darkened to 11:1, to
+       stand apart from the colours. Black and the background are
+       Latte's; the mark is its peach. *)
     Light*: Palette = {mode: Mode.light, col: [
-        5C5F77H, 0D20F39H, 327D22H, 9A6114H, 1D63EFH, 0A2518DH, 137A80H, 6B6D7EH,
-        696C82H, 0D20F39H, 327D22H, 9A6114H, 1D63EFH, 0A2518DH, 137A80H, 6B6D76H,
-        4C4F69H, 0EFF1F5H, 0DC8A78H, 0FE640BH]};
+        5C5F77H, 0CF0036H, 1D7700H, 935A00H, 0057F7H, 0BE009FH, 007278H, 6B6D7EH,
+        696C82H, 0D90039H, 1F7D00H, 9B5F00H, 065DFFH, 0C800A7H, 00787FH, 6B6D76H,
+        313344H, 0EFF1F5H, 0DC8A78H, 0FE640BH]};
 
     (* ladle's duck (~/r/ladle, src/Ltheme.raz), a mallard's green and
        its bill's orange; by night a pond's deep teal. Duck names roles,
@@ -155,15 +157,16 @@ const
 
     (* Duck by day: the same roles on a pale green-grey, as light as
        Latte's background, since pure white glares; each colour is
-       darkened along its hue to 6:1 or better on it. Black is its
+       made vivid as Latte's are, at 5:1; cyan and blue take Latte's
+       hues, away from the green the page leans to. Black is its
        foreground and the whites its muted grey, as with Latte, since
        programs print both as text; the red is again added. The cursor
        is a deeper orange, at 4:1, so that it shows on the page; the
        mark keeps the bill's orange, as selections put dark text on
        it. *)
     DuckLight*: Palette = {mode: Mode.light, col: [
-        1B2B26H, 9E2119H, 20662AH, 864800H, 1B5884H, 75399AH, 0A6146H, 4B5A55H,
-        4B5A55H, 9E2119H, 20662AH, 864800H, 1B5884H, 75399AH, 0A6146H, 4B5A55H,
+        1B2B26H, 0D00002H, 007723H, 9C5400H, 0057F4H, 0A300E6H, 007277H, 4B5A55H,
+        4B5A55H, 0DB0003H, 007E26H, 0A55900H, 035DFFH, 0AB00F3H, 00787EH, 4B5A55H,
         1B2B26H, 0EDF2EFH, 0BD5A00H, 0F28C28H]};
 
     (* Cyberpunk by night: a city's neon on a violet-black sky. Hot
@@ -177,12 +180,12 @@ const
         0F4E6FFH, 0D0221H, 0FF2FD0H, 0FF2A9DH]};
 
     (* Cyberpunk by day: deep violet text on hot-pink-tinted paper, the
-       neon deepened along its hue to 4.5:1 or better: blue turns
+       neon deepened along its hue, as vivid as Latte's: blue turns
        electric indigo, green teal, the whites lilac; hot pink stays the
        cursor and the mark. *)
     CyberLight*: Palette = {mode: Mode.light, col: [
-        3A1450H, 0C2003FH, 00704FH, 8A5300H, 3A2FD0H, 0B5007FH, 006A86H, 6A4A7FH,
-        7A4A90H, 0D0004CH, 00704DH, 945A00H, 4A3AE0H, 0C4008AH, 006A88H, 5A3A70H,
+        3A1450H, 0C40040H, 00704FH, 8D5500H, 4A3EFFH, 0BB0083H, 006A86H, 6A4A7FH,
+        7A4A90H, 0CE004BH, 007652H, 955A00H, 5646FFH, 0C5008AH, 007090H, 5A3A70H,
         4A0A63H, 0FCE1F4H, 0E0168FH, 0FF2A9DH]};
 
     (* Phosphor by night: an old terminal's P1 green on black glass.
@@ -198,14 +201,16 @@ const
 
     (* Phosphor by day: a teleprinter's green-barred fanfold paper,
        printed in ink so dark a green it reads as black, so that the
-       green itself, a clear one, and a brick red tell a diff's added and
-       removed lines from the rest. Every colour leans to the green
-       (blue is teal, the whites green-greys) and is darkened to 4.5:1
-       or better on the paper. The mark stays amber. *)
+       green itself, a clear one, and a true red tell a diff's added
+       and removed lines from the rest. The paper is pale and only
+       moderately green, so that the colours can be vivid, as Latte's
+       are, at 5:1 on it; their hues are Latte's too, spread apart, as
+       a green page makes green, cyan and teal blue hard to tell apart.
+       The whites are green-greys and the mark stays amber. *)
     PhosphorLight*: Palette = {mode: Mode.light, col: [
-        2A4A2EH, 0B42318H, 17782AH, 7A5200H, 155A6EH, 6A3A6AH, 0A6450H, 4A6450H,
-        566E5AH, 0C42A1CH, 137028H, 845A00H, 1A6680H, 784478H, 0D705AH, 384E3CH,
-        14261AH, 0D9EED2H, 17782AH, 0FFB000H]};
+        2A4A2EH, 0CD0E00H, 0A7700H, 905A00H, 0057F3H, 0B400B9H, 007176H, 4A6450H,
+        566E5AH, 0D71000H, 0B7D00H, 985F00H, 015CFFH, 0BE00C3H, 00787DH, 384E3CH,
+        14261AH, 0E9F2E6H, 17782AH, 0FFB000H]};
 
     (* Each theme's two palettes, dark then light. *)
     Pairs: [Themes][2]Palette = [[Dark, Light], [DuckDark, DuckLight], [CyberDark, CyberLight],
@@ -316,16 +321,28 @@ end;
 (* Every colour p prints text in reads on its background: 7:1 for the
    foreground, 4.5:1 for slots 1 to 15. Black is free, since black on
    black is in every dark theme; bright black is dim text, so it must
-   read. Prints every ratio. *)
+   read. A light palette's foreground needs 11:1, and its colours no
+   more than 6:1: darker than that, they all look like the text. Prints
+   every ratio. *)
 proc contrast(name: []const U8; const p: Palette);
-var i: INT; r, need: F64;
+var i: INT; r, need, most: F64; light: BOOL;
 begin
+    light := p.mode = Mode.light;
     for i := 0 to Fg do
         need := 4.5;
-        if i = Fg then need := 7.0; elsif i = Black then need := 0.0; end;
+        most := 21.0;
+        if i = Fg then
+            need := 7.0;
+            if light then need := 11.0; end;
+        elsif i = Black then
+            need := 0.0;
+        elsif light and i mod Bright # Black and i mod Bright # White then
+            most := 6.0;
+        end;
         r := ratio(p.col[i], p.col[Bg]);
         Fmt.print("{} slot {2} {5}:1\n", [Fmt.str(name), Fmt.int(i), Fmt.real(r, 2)]);
         expect(r >= need, "a contrast too low");
+        expect(r <= most, "a light colour so dark it looks like the text");
     end;
 end;
 

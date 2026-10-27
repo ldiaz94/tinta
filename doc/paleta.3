@@ -88,9 +88,10 @@ is Catppuccin Mocha's terminal palette, with its peach as the mark
 and bright black, the colour of dim text, lightened, keeping its hue,
 to a contrast ratio of 4.5:1 against the background.
 .Dv Light
-is Latte's, with every colour but black and red darkened, keeping
-its hue, until each has a contrast ratio of 4.5:1 against the
-background, what WCAG asks of ordinary text; the foreground has 7:1.
+is Latte's, with every colour of text but the whites set, keeping
+its hue, to a contrast ratio of 5:1 against the background (4.6:1
+for the bright ones) and given as much chroma as sRGB allows there;
+the foreground is darkened to 11:1.
 .Pp
 Two palettes, one dark and one light, make a theme.
 .Dv Dark
@@ -109,7 +110,7 @@ a mallard's green and its bill's orange, on a pale green-grey by day and a
 pond's deep teal by night.
 Duck names roles, not ANSI colours, so each slot takes the nearest
 role (strings green, keywords cyan, types yellow, numbers blue),
-and a red in its tone is added; its colours read at 6:1 or better.
+and a red in its tone is added.
 Cyberpunk, the pair
 .Dv CyberDark
 and
@@ -132,10 +133,13 @@ and a true red, a diff's added and removed lines, stand out from it,
 with amber for the mark and the whites leaning green; and
 .Dv PhosphorLight
 near-black green ink on green-barred fanfold paper, with a clear green
-and a brick red, every colour leaning green (teal for blue, green-greys
-for the whites), with an amber mark.
-Every text colour of every palette has a contrast ratio of 4.5:1 or
-better, and the foreground 7:1 or better; the test checks it.
+and a true red, the other colours vivid and their hues apart, green-grey
+whites and an amber mark.
+Every text colour of a dark palette has a contrast ratio of 4.5:1 or
+better, and the foreground 7:1 or better.
+A light palette's foreground has 11:1, and its colours no more than
+6:1: darker, they lose their hue and look like the text.
+The test checks it.
 The property carries colours, not a theme, so
 .Fn themeOf
 tells the theme from them.

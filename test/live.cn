@@ -46,11 +46,11 @@ $t cyberpunk
 if `$t theme` <> 'cyberpunk' then fail('cyberpunk was not set');
 $t catppuccin
 
-// The colours themselves, as xprop reads them: Catppuccin Latte's
-// foreground and background.
+// The colours themselves, as xprop reads them: Light's foreground,
+// Latte's darkened, and Latte's background.
 $t light
 prop := `xprop -root _TINTA`
-if pos('5001065, 15725045', prop) = 0 then fail("light's colours are not Latte's: $prop");
+if pos('3224388, 15725045', prop) = 0 then fail("light's colours are not Light's: $prop");
 
 // A property of another type, then a short one: each reported,
 // counted as dark, and mended by setting a palette.
