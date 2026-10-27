@@ -7,10 +7,15 @@
 // numbers, bad numbers refused, every contrast high enough. Then
 // build/tinta: -h and --help without a display, a usage error, no
 // display at all; and test/live.cn on a private Xvfb, never the
-// desktop's, skipped with a word if xvfb-run or xprop is missing.
+// desktop's, with a session bus of dbus-run-session's, skipped with a
+// word if xvfb-run, xprop, dbus-run-session or dbus-monitor is missing.
 
 errexit := true
 pipefail := true
+
+// No test ever reaches the desktop's session bus, or its notifications
+// would show there: a bus that isn't, until live.cn has its own.
+export DBUS_SESSION_BUS_ADDRESS := 'unix:path=/nonexistent'
 
 if length(args) <> 2 then begin
   echo 'usage: concha test/check.cn RAZ CONCHA' >&2
@@ -56,7 +61,7 @@ env DISPLAY=:79 $t 2>/dev/null
 if status <> 2 then fail('no server did not exit 2');
 errexit := true
 
-for tool in ['xvfb-run', 'Xvfb', 'xprop'] do
+for tool in ['xvfb-run', 'Xvfb', 'xprop', 'dbus-run-session', 'dbus-monitor'] do
   if not have(tool) then begin
     echo "check: no $tool, live tests skipped"
     halt(0)
@@ -64,5 +69,5 @@ for tool in ['xvfb-run', 'Xvfb', 'xprop'] do
 
 // -noreset: a server whose last client leaves resets and forgets every
 // property, _TINTA with it.
-xvfb-run -a -s '-screen 0 640x480x24 -nolisten tcp -noreset' $concha test/live.cn $t
+dbus-run-session --config-file=test/session.conf -- xvfb-run -a -s '-screen 0 640x480x24 -nolisten tcp -noreset' $concha test/live.cn $t
 echo 'check: passed'

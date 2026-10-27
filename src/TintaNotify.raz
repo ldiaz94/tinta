@@ -1,0 +1,61 @@
+(* TintaNotify: a notification on the desktop saying which palette
+   tinta has set, as awizo, or any notification server, shows it.
+
+   A notification is a call to the desktop's notification server, on
+   the session's D-Bus, by rdbus's Dbus, which speaks the bus with no C:
+
+       org.freedesktop.Notifications.Notify(app_name, replaces_id,
+           app_icon, summary, body, actions, hints, expire_timeout)
+
+   its signature "susssasa{sv}i" (the Desktop Notifications
+   specification). The reply is the notification's id. Passed back as
+   replaces_id, the next notification takes the place of this one, so
+   that tinta next pressed four times shows one notification, not four.
+   tinta is gone by the next call, so the caller keeps the id (Tinta
+   keeps it on the root window).
+
+   Where there is no bus, or no notification server on it, nothing is
+   shown, and tinta goes on as before: the palette is set either way.
+
+   Depends on rdbus's Dbus.
+   Leaves out: actions, icons and hints. *)
+module TintaNotify;
+import Dbus;
+
+const
+    Patience = 500;          (* milliseconds the bus is given to answer, at most *)
+    Room = 4096;             (* a notification's message, and the bus's hello *)
+
+var
+    rbuf, wbuf: [Room]U8;
+
+(* summary shown on the desktop, in place of notification replaces if
+   that is still shown: the new notification's id, or 0 if none could
+   be shown. *)
+proc send*(summary: []const U8; replaces: U32): U32;
+var b: Dbus.Bus; m: Dbus.Mark; reply: Dbus.Msg; serial, id: U32;
+begin
+    Dbus.init(b, rbuf, wbuf);
+    if Dbus.openWithin(b, "", Patience) # nil then return 0; end;
+    serial := Dbus.startCall(b, "org.freedesktop.Notifications", "/org/freedesktop/Notifications",
+        "org.freedesktop.Notifications", "Notify", "susssasa{sv}i");
+    Dbus.putS(b, "tinta");
+    Dbus.putU(b, replaces);
+    Dbus.putS(b, "");                    (* no icon *)
+    Dbus.putS(b, summary);
+    Dbus.putS(b, "");                    (* no body *)
+    m := Dbus.putArray(b, 4);            (* no actions *)
+    Dbus.putArrayEnd(b, m);
+    m := Dbus.putArray(b, 8);            (* no hints *)
+    Dbus.putArrayEnd(b, m);
+    Dbus.putI(b, -1);                    (* the server's own time to show it *)
+    id := 0;
+    if Dbus.send(b) = nil and Dbus.waitWithin(b, reply, serial, Patience) = nil then
+        id := Dbus.getU(reply);
+        if reply.bad then id := 0; end;
+    end;
+    Dbus.close(b);
+    return id;
+end;
+
+end TintaNotify.

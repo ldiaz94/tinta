@@ -8,7 +8,9 @@ terminal, the window manager's bar and borders and the drawing board
 all turn light at once, without a restart; `tinta dark` and they turn
 back. Switching themes on Linux is a bane because every program keeps
 its own colours and nothing tells them the choice changed. This fixes
-it at the root, for the programs on this desktop.
+it at the root, for the programs on this desktop. Each change also
+shows a desktop notification, such as "cyberpunk, dark", so a key bound
+to `tinta next` says what it did.
 
 *Tinta* is ink, in Spanish; the mascot is a drop of it, half dark,
 half light. tinta is a raz port of the Free Pascal tinta, with the same
@@ -25,9 +27,11 @@ give the same file; `rat -gif` draws it as the GIF.
 
 ## Get it
 
-tinta needs raz, libX11 and rx11's checkout (its Xlib binding) beside
-this directory, as `~/r/rx11`; `robbie rx11=PATH` names another.
-`robbie check` also needs `xvfb-run`, `xprop` and `groff`. The build
+tinta needs raz, libX11, rx11's checkout (its Xlib binding) and rdbus's
+(its D-Bus, for the notification) beside this directory, as `~/r/rx11`
+and `~/r/rdbus`; `robbie rx11=PATH rdbus=PATH` names others.
+`robbie check` also needs `xvfb-run`, `xprop`, `dbus-run-session`,
+`dbus-monitor` and `groff`. The build
 sets `RAZ_PATH` empty, so raz never sees `~/.raz/lib`, where `install`
 puts a copy of Paleta that a second one would clash with.
 
@@ -48,6 +52,11 @@ puts a copy of Paleta that a second one would clash with.
 | `tinta next` | set the next theme: catppuccin, duck, cyberpunk, phosphor, and round |
 | `tinta theme` | print the theme's name |
 | `tinta -h`, `--help` | print the usage |
+
+Every command that sets a palette also shows a notification, summary
+"THEME, MODE" (say `cyberpunk, dark`), by the session's D-Bus; awizo
+shows it, or any notification server. With no bus or no server nothing
+is shown, the palette is set anyway and the exit status is the same.
 
 Exit status: 0 done, 1 a usage error, 2 the display could not be
 opened or the server did not keep the palette.
@@ -80,7 +89,7 @@ the module's.
 
 ## How it works
 
-2 ideas, a module each.
+3 ideas, a module each.
 
 **1. The palette is colours, in one property: `src/Paleta.raz`.** The
 palette is 20 colours in a fixed order. Slots 0 to 15 are the ANSI
@@ -93,10 +102,13 @@ light, for programs whose colours are their own.
     light  Catppuccin Latte's, its colours darkened to read as text
     duck   ladle's duck theme: a mallard's green and orange on a pale grey by
            day, a pond's deep teal by night
-    cyberpunk  neon, hot pink above all, on violet-black by night; by day the
-           same neon deepened on a pale pink-white
+    cyberpunk  neon, hot pink above all, on violet-black by night; by day deep
+           violet text on hot-pink-tinted paper, blue electric indigo, green
+           teal, the whites lilac, the cursor and mark hot pink
     phosphor   an old terminal's P1 green on black, with amber, by night; by
-           day a teleprinter's green-barred fanfold paper in dark green ink
+           day dark green ink on greener green-barred fanfold paper, every
+           colour leaning green (blue teal, the whites green-greys), the
+           mark amber
 
 A dark palette and a light one make a **theme**; the theme and the mode
 are set apart, each keeping the other. Catppuccin is the default. There are four.
@@ -133,6 +145,18 @@ look when a colour is wrong. It replaces the property in a single
 reads it back: that round trip tells it the server has done the change
 before it exits. Setting the property is the whole signal; programs
 that follow it watch the root for `PropertyNotify`.
+
+**3. A notification says what was set: `src/TintaNotify.raz`.** After
+the palette is set, tinta calls `Notify` on
+`org.freedesktop.Notifications`, on the session's D-Bus, through rdbus's
+`Dbus` (no C): app name `tinta`, summary "THEME, MODE". The server's
+id is kept in a second root property, `_TINTA_NOTE` (`CARDINAL`, format
+32, one item), and passed as `replaces_id` next time. tinta is gone
+between calls, so the property is where the id waits; pressing `tinta
+next` four times shows one notification that changes, not four. It is
+no part of the palette, and nothing else reads it. If there is no bus
+or no server, nothing is shown, the palette is set anyway and the exit
+status is unchanged; tinta waits at most 500 ms for the bus.
 
 **Each program chooses how closely to follow**, in a compile-time
 constant `FollowTinta`:
@@ -181,8 +205,14 @@ other item as zero.
 - `build/tinta` with `-h` and `--help` without a display, a usage error
   and no display at all;
 - `test/live.cn`: tinta on a private Xvfb (`-noreset`, never the
-  desktop's), every command, the bytes of the property by `xprop`;
-  skipped with a word if `xvfb-run` or `xprop` is missing;
+  desktop's) and a private bus from `dbus-run-session` (`test/session.conf`, which
+  names no services, so no notification server installed is started),
+  every command,
+  the bytes of the property by `xprop`, and by `dbus-monitor` that
+  `Notify` is called with "cyberpunk, dark"; skipped with a word if
+  `xvfb-run`, `xprop`, `dbus-run-session` or `dbus-monitor` is missing;
+  `test/check.cn` points `DBUS_SESSION_BUS_ADDRESS` at a bus that does
+  not exist, so no test reaches the desktop's;
 - the manuals through `groff -mandoc -Tutf8 -ww -z`: no warnings.
 
 ## Size
@@ -190,9 +220,10 @@ other item as zero.
 `robbie loc` (by `rloc`):
 
     language    files  blank  comment  code
-    raz             2     62      173   322
+    raz             3     73      202   382
 
-The program is dynamically linked to libX11, through rx11.
+The program is dynamically linked to libX11, through rx11; rdbus speaks
+D-Bus in raz.
 
 ## Left out
 

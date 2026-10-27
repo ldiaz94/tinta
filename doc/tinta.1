@@ -22,7 +22,27 @@ duck, cyberpunk or phosphor; the mode and the theme are set apart, each keeping 
 Programs that follow it recolour themselves at once: nothing is
 restarted, and
 .Nm
-tells nobody anything, since setting the property is the whole signal.
+tells no program anything, since setting the property is the whole signal.
+.Pp
+Every command that sets a palette also shows a desktop notification,
+whose summary is the theme and the mode, such as
+.Dq cyberpunk, dark ,
+from the application
+.Dq tinta .
+It is a call to
+.Li org.freedesktop.Notifications.Notify
+on the session's D-Bus, so
+.Xr awizo 1 ,
+or any notification server, shows it.
+The server's id is kept in the root window's
+.Li _TINTA_NOTE
+property and passed as the id to replace next time, so
+.Ic tinta next
+pressed four times shows one notification that changes, not four.
+With no bus or no server nothing is shown; the palette is set anyway and
+the exit status is the same.
+.Nm
+waits at most 500 ms for the bus.
 .Pp
 With no argument,
 .Nm
@@ -51,12 +71,14 @@ keeping the mode: a mallard's green and its bill's orange on a pale
 green-grey by day, a pond's deep teal by night.
 .It Cm cyberpunk
 Sets the cyberpunk theme, keeping the mode: neon, hot pink above all,
-on violet-black by night, and by day the same neon deepened on a pale
-pink-white.
+on violet-black by night, and by day deep violet text on
+hot-pink-tinted paper, with electric indigo for blue, teal for green,
+lilac whites and a hot pink cursor and mark.
 .It Cm phosphor
 Sets the phosphor theme, keeping the mode: an old terminal's P1 green
-on black with amber by night, and by day a teleprinter's green-barred
-fanfold paper in dark green ink.
+on black with amber by night, and by day dark green ink on a teleprinter's
+greener, green-barred fanfold paper, every colour leaning green (teal
+for blue, green-greys for the whites) with an amber mark.
 .It Cm next
 Sets the next theme, keeping the mode: catppuccin, duck, cyberpunk,
 phosphor, then catppuccin again.
@@ -98,6 +120,15 @@ names them and turns the numbers into a palette and back.
 .Pp
 The property lives as long as the X server does: a window manager's
 restart keeps it, a new login starts dark.
+.Pp
+A second property,
+.Li _TINTA_NOTE ,
+of type
+.Li CARDINAL ,
+format 32, one item, holds the id of the notification last shown.
+It is no part of the palette, and no program but
+.Nm
+reads it.
 .Sh FOLLOWING IT
 A program reads
 .Li _TINTA
@@ -140,6 +171,14 @@ that prints ANSI colours, such as
 .Xr ls 1
 or an editor, follows without knowing it: the terminal decides what
 the colours look like.
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev DISPLAY
+The X server to set the palette on.
+.It Ev DBUS_SESSION_BUS_ADDRESS
+The session bus the notification is sent on.
+If it is unset or names no bus, no notification is shown.
+.El
 .Sh EXIT STATUS
 .Bl -tag -width Ds -compact
 .It 0
@@ -229,6 +268,7 @@ light, or not
 is reported, counts as dark, and is replaced by the next palette set.
 .Sh SEE ALSO
 .Xr alba 1 ,
+.Xr awizo 1 ,
 .Xr mosaico 1 ,
 .Xr pt 1 ,
 .Xr rat 1 ,
@@ -244,7 +284,7 @@ Contrast is WCAG 2's ratio.
 .Sh HISTORY
 Written in 2026 for this desktop, so that light and dark could be
 switched at the root rather than program by program.
-It was Free Pascal on xwire; it is now raz, over Xlib (libX11), built
+It was Free Pascal on xwire; it is now raz, over Xlib (libX11) and rdbus, built
 with
 .Xr robbie 1
 and the same in every word it prints and every byte it sets.
@@ -262,6 +302,8 @@ import.
 the module's manual.
 .It Pa ~/r/tinta/src/Paleta.raz
 the palettes and the property's layout.
+.It Pa ~/r/tinta/src/TintaNotify.raz
+the notification, over rdbus.
 .El
 .Sh CAVEATS
 Only X clients that follow the property change: GTK and Qt programs

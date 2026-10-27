@@ -14,20 +14,25 @@
    The palette is the _TINTA property on the root window (Paleta
    describes it); tinta is the only program that writes it. Programs
    that follow it watch the root for PropertyNotify and colour
-   themselves again, so tinta has nothing to tell anyone: setting the
-   property is the whole signal.
+   themselves again: setting the property is the whole signal to them.
+   For the person at the desk, tinta also shows a notification saying
+   the theme and mode it set (TintaNotify), when the desktop has a
+   notification server; its id is kept in _TINTA_NOTE on the root, so
+   that the next one replaces it.
 
    Exit status: 0, 1 for a usage error, 2 if the display can't be
    opened or the server doesn't keep the palette.
 
-   Depends on: Paleta; Xlib, from rx11; Files, Sys and Rt.
+   Depends on: Paleta, TintaNotify; Xlib, from rx11; Files, Fmt, Sys and Rt.
    Leaves out: remembering the choice across logins, which is the
    session's to do by running tinta at its start. *)
 module Tinta;
-import Paleta, Xlib, Files, Sys, Rt;
+import Paleta, TintaNotify, Xlib, Files, Fmt, Sys, Rt;
 import SYSTEM;
 
-const Usage = "usage: tinta [dark | light | toggle | catppuccin | duck | cyberpunk | phosphor | next | theme]\n";
+const
+    Usage = "usage: tinta [dark | light | toggle | catppuccin | duck | cyberpunk | phosphor | next | theme]\n";
+    NoteAtom = "_TINTA_NOTE";   (* the root's property holding the last notification's id *)
 
 var
     dpy: Xlib.Display;   (* the connection to the X server *)
@@ -102,10 +107,40 @@ begin
     return p;
 end;
 
+(* The notification's id kept on the root, or 0 if there is none. *)
+proc lastNote(note: Xlib.Atom): U32;
+var typ: Xlib.Atom; format: I32; n, after: U64; got: ^U8; id: U32;
+begin
+    id := 0;
+    if Xlib.XGetWindowProperty(dpy, root, note, 0, 1, 0, Xlib.XA_CARDINAL, SYSTEM.ADR(typ), SYSTEM.ADR(format),
+            SYSTEM.ADR(n), SYSTEM.ADR(after), SYSTEM.ADR(got)) = Xlib.Success and got # nil then
+        if typ = Xlib.XA_CARDINAL and format = 32 and n = 1 then id := U32(got[0].(INT)); end;
+        Xlib.XFree(got);
+    end;
+    return id;
+end;
+
+(* A notification saying p's theme and mode, in place of the last one,
+   and its id kept for the next. *)
+proc tell(const p: Paleta.Palette);
+var note: Xlib.Atom; th: Paleta.Theme; id: U64; summary: [32]U8; n: INT; mode: []const U8;
+begin
+    th, _ := Paleta.themeOf(p);
+    mode := "light";
+    if p.mode = Paleta.Mode.dark then mode := "dark"; end;
+    n, _ := Fmt.into(summary, "{}, {}", [Fmt.str(Paleta.themeName(th)), Fmt.str(mode)]);
+    note := Xlib.XInternAtom(dpy, NoteAtom, 0);
+    id := U64(TintaNotify.send(summary[0..n], lastNote(note)));
+    if id # 0 then
+        Xlib.XChangeProperty(dpy, root, note, Xlib.XA_CARDINAL, 32, Xlib.PropModeReplace, ^U8(SYSTEM.ADR(id)), 1);
+    end;
+end;
+
 (* Replaces the property with p, in one request, so that a client never
    reads half of it. Then reads it back: the reply is a round trip,
    which tells us the server has done it. Without one a program that
-   closes at once can lose the request (an Xvfb did). *)
+   closes at once can lose the request (an Xvfb did). Last, a
+   notification says what was set. *)
 proc put(const p: Paleta.Palette);
 var data: [Paleta.Items]U32; longs: [Paleta.Items]U64; i: INT; q: Paleta.Palette;
 begin
@@ -115,6 +150,7 @@ begin
         Paleta.Items);
     q := current();
     if q.mode # p.mode or q.col # p.col then die("the server did not keep the palette"); end;
+    tell(p);
 end;
 
 (* The theme named cmd, if cmd names one. *)

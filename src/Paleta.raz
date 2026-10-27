@@ -176,12 +176,14 @@ const
         8F7FADH, 0FF6B8BH, 7BFFB0H, 0FFF57AH, 7AB8FFH, 0FF7AE6H, 7AF8FFH, 0FFFFFFH,
         0F4E6FFH, 0D0221H, 0FF2FD0H, 0FF2A9DH]};
 
-    (* Cyberpunk by day: the same neon, deepened along its hue to 4.5:1
-       or better on a pale pink-white, with deep purple for text. *)
+    (* Cyberpunk by day: deep violet text on hot-pink-tinted paper, the
+       neon deepened along its hue to 4.5:1 or better: blue turns
+       electric indigo, green teal, the whites lilac; hot pink stays the
+       cursor and the mark. *)
     CyberLight*: Palette = {mode: Mode.light, col: [
-        3A2A4AH, 0C4003AH, 007A45H, 806000H, 1F4FD0H, 0C0168FH, 006E85H, 6A5A7AH,
-        6E5C80H, 0D6004AH, 006E3EH, 8A6A00H, 2A5CE0H, 0B0127FH, 007890H, 5A4A6AH,
-        2B0A3DH, 0FBEEFAH, 0E0168FH, 0FF2A9DH]};
+        3A1450H, 0C2003FH, 00704FH, 8A5300H, 3A2FD0H, 0B5007FH, 006A86H, 6A4A7FH,
+        7A4A90H, 0D0004CH, 00704DH, 945A00H, 4A3AE0H, 0C4008AH, 006A88H, 5A3A70H,
+        4A0A63H, 0FCE1F4H, 0E0168FH, 0FF2A9DH]};
 
     (* Phosphor by night: an old terminal's P1 green on black glass.
        Text is the phosphor green; amber, the other phosphor, is the
@@ -193,13 +195,14 @@ const
         4F9A5FH, 0FF8A6AH, 8AFF9AH, 0FFD060H, 80C8FFH, 0F0A0FFH, 90FFE0H, 0E0FFE4H,
         33FF66H, 050A05H, 33FF66H, 0FFB000H]};
 
-    (* Phosphor by day: a teleprinter's fanfold paper, green-barred,
-       printed in dark green ink; every colour is darkened to 4.5:1 or
-       better on the pale green. The mark stays amber. *)
+    (* Phosphor by day: a teleprinter's green-barred fanfold paper,
+       printed in dark green ink; every colour leans to the green (blue
+       is teal, the whites green-greys) and is darkened to 4.5:1 or
+       better on it. The mark stays amber. *)
     PhosphorLight*: Palette = {mode: Mode.light, col: [
-        2A4A2EH, 0A8301AH, 1D6B2AH, 7A5200H, 1F5A8AH, 7A3A8AH, 0B6A5AH, 4F6A52H,
-        4F6A52H, 0B83A20H, 1F7530H, 845A00H, 23649AH, 86429AH, 0D7464H, 3F5A42H,
-        0F2A12H, 0E8F5E4H, 1D6B2AH, 0FFB000H]};
+        1F4A26H, 9A2E14H, 1A6B2AH, 6E4C00H, 155A6EH, 6A3A6AH, 0A6450H, 3F6045H,
+        4A6A4FH, 0A8381AH, 1C6E2BH, 7A5600H, 1A6680H, 784478H, 0D705AH, 2F5035H,
+        0B3D16H, 0D9EED2H, 1D7A2CH, 0FFB000H]};
 
     (* Each theme's two palettes, dark then light. *)
     Pairs: [Themes][2]Palette = [[Dark, Light], [DuckDark, DuckLight], [CyberDark, CyberLight],

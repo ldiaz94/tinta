@@ -1,7 +1,7 @@
 # Working on tinta
 
 `tinta` sets the X desktop's palette, light or dark, in the `_TINTA`
-property on the root window. A raz port of the Pascal `~/lib/tinta`
+property on the root window, and shows a notification saying which. A raz port of the Pascal `~/lib/tinta`
 (frozen) with the same CLI, output, messages and exit codes. Read
 `README.md` first. Follow `~/r/CLAUDE.md` and `~/r/raz/STANDARDS.md`.
 
@@ -10,11 +10,12 @@ property on the root window. A raz port of the Pascal `~/lib/tinta`
 A personal project: `sauce` for version control, `git` as a mirror,
 `robbie` for tasks, `concha` for scripts. It builds over rx11's Xlib, from
 rx11's checkout beside this directory (`-I ../rx11/src`; `robbie
-rx11=...` names another), with `RAZ_PATH` empty so that raz never sees
+rx11=...` names another), and over rdbus's Dbus for the notification
+(`-I ../rdbus/src`, `robbie rdbus=...`), with `RAZ_PATH` empty so that raz never sees
 `~/.raz/lib`, where a second Paleta would clash.
 
     robbie               # build/tinta
-    robbie check         # Paleta's own test, tinta on an Xvfb, the manuals
+    robbie check         # Paleta's own test, tinta on an Xvfb and a private bus, the manuals
     robbie fmt           # src/ as Pretty.raz writes it
     robbie loc           # lines of code, by rloc
     robbie cast          # doc/demo.cast and doc/img/demo.gif, by rat -gif
@@ -28,6 +29,10 @@ rx11=...` names another), with `RAZ_PATH` empty so that raz never sees
   calls; its `main` is its test. `robbie install` puts a plain
   copy in `~/.raz/lib`, where raz finds it.
 - `src/Tinta.raz`: the program, over Xlib.
+- `src/TintaNotify.raz`: the notification, over rdbus's `Dbus`. Its id
+  is kept in the `_TINTA_NOTE` root property. `robbie check` needs
+  `dbus-run-session` and `dbus-monitor`, and no test may reach the
+  desktop's bus.
 
 ## How we work
 

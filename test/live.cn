@@ -62,3 +62,18 @@ why := `$t 2>&1 >/dev/null`
 if why <> 'tinta: the _TINTA property is too short to hold a palette; ignored' then fail("a short one gave: $why");
 $t light 2>/dev/null
 if `$t 2>&1` <> 'light' then fail('setting did not mend it');
+
+// The notification: Notify called on the test's own bus, saying the
+// theme and mode. There is no notification server on it, so the call
+// is refused and tinta goes on; dbus-monitor sees the call anyway.
+dbus-monitor "interface='org.freedesktop.Notifications',member='Notify'" > build/notify.log &
+monitor := lastpid
+sleep 0.5
+$t cyberpunk
+$t dark
+sleep 0.5
+kill $monitor
+calls := `grep -c 'member=Notify' build/notify.log`
+if calls <> '2' then fail("tinta made $calls Notify calls, not 2");
+grep -q 'string "cyberpunk, dark"' build/notify.log
+if status <> 0 then fail('no notification said cyberpunk, dark');
