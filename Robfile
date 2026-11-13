@@ -16,18 +16,32 @@ rdbus  = ../rdbus
 prefix = /home/luis/.local
 razlib = /home/luis/.raz/lib
 pages  = doc/tinta.1 doc/paleta.3
+themes = catppuccin duck cyberpunk phosphor
 
 # The program.
 build/tinta: src/*.raz {raz}
     mkdir -p build
     RAZ_PATH= {raz} -Werror -I src -I {rx11}/src -I {rdbus}/src -o {target} src/Tinta.raz
 
-# Paleta's own test, then tinta without a display and on an Xvfb of the test's own, then the manuals.
-task check: build/tinta
+# Pages, which writes a theme's palettes as a stylesheet for tinta-pages.
+build/pages: src/Paleta.raz src/Pages.raz {raz}
+    mkdir -p build
+    RAZ_PATH= {raz} -Werror -I src -o {target} src/Pages.raz
+
+# pages/palette-NAME.css written again from Paleta, one per theme.
+task pages: build/pages
+    for t in {themes}; do build/pages "$t" > "pages/palette-$t.css"; done
+
+# Paleta's own test, then tinta without a display and on an Xvfb of the test's own,
+# then the manuals, then that pages/palette-NAME.css are what Paleta says.
+task check: build/tinta build/pages
     {concha} test/check.cn {raz} {concha}
     for p in {pages}; do
         out=$(groff -mandoc -Tutf8 -ww -z "$p" 2>&1)
         test -z "$out" || { echo "$p: $out"; exit 1; }
+    done
+    for t in {themes}; do
+        build/pages "$t" | cmp -s - "pages/palette-$t.css" || { echo "pages/palette-$t.css is stale: robbie pages"; exit 1; }
     done
 
 # The sources as raz's Pretty lays them out.

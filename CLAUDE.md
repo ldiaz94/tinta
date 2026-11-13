@@ -19,6 +19,7 @@ rx11=...` names another), and over rdbus's Dbus for the notification
     robbie fmt           # src/ as Pretty.raz writes it
     robbie loc           # lines of code, by rloc
     robbie cast          # doc/demo.cast and doc/img/demo.gif, by rat -gif
+    robbie pages         # pages/palette-NAME.css, written again from Paleta
     robbie install       # tinta and its manuals into ~/.local, a plain copy of Paleta into ~/.raz/lib
 
 `robbie check` and `robbie fmt` must pass before every commit.
@@ -33,6 +34,9 @@ rx11=...` names another), and over rdbus's Dbus for the notification
   is kept in the `_TINTA_NOTE` root property. `robbie check` needs
   `dbus-run-session` and `dbus-monitor`, and no test may reach the
   desktop's bus.
+- `src/Pages.raz`: each theme as a stylesheet for tinta-pages, in `pages/`
+  with `tinta.css` and `tinta.js`; jsDelivr serves them at a `pages-N` tag,
+  so a change to them needs a new tag before pages can use it.
 
 ## How we work
 

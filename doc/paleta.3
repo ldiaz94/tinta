@@ -36,6 +36,7 @@ proc themeOf(const p: Palette): (Theme, BOOL);
 proc themeName(th: Theme): []const U8;
 proc encode(const p: Palette): [Items]U32;
 proc decode(data: []const U32; var p: Palette): ERROR;
+proc ratio(a, b: U32): F64;
 .Ed
 .Pp
 Compile a program that imports it as usual:
@@ -196,6 +197,13 @@ On an error
 is left as it was, so a caller that set it to
 .Dv Dark
 first can use it either way.
+.It Fn ratio a b
+The contrast ratio of the colours
+.Fa a
+and
+.Fa b ,
+from 1 to 21, as WCAG 2 defines it:
+text reads at 4.5 or more.
 .El
 .Ss Following the palette
 Read

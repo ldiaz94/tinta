@@ -309,7 +309,7 @@ begin
 end;
 
 (* WCAG's contrast ratio of a and b, 1 to 21. *)
-proc ratio(a, b: U32): F64;
+proc ratio*(a, b: U32): F64;
 var la, lb: F64;
 begin
     la := luminance(a);

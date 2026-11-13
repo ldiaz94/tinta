@@ -1,0 +1,131 @@
+(* Pages: a theme's palettes as a stylesheet, for web pages in tinta's
+   colours.
+
+   tinta-pages, our style for pages people read (proposals, reports,
+   write-ups), is pages/tinta.css and pages/tinta.js, which take every
+   colour from tokens on :root. This program prints those tokens for one
+   theme, its light palette and its dark one:
+
+       :root { --bg: ...; --fg: ...; ... }            light, by default
+       @media (prefers-color-scheme: dark) { ... }     dark, when the
+       :root[data-theme='dark'] { ... }                viewer asks for it
+
+   The Robfile's pages task writes it to pages/palette-NAME.css for each
+   theme, so pages have the same colours as the desktop, from the one
+   place they are defined. Most tokens are slots as they stand; a few are
+   blends of two (a panel is the background with a little of the text),
+   and accent text is darkened where the mark reads below 4.5:1.
+
+   Depends on Paleta for the colours and their contrast.
+
+   Leaves out: the pages' layout, type and behaviour, which are
+   tinta.css and tinta.js. *)
+module Pages;
+import Paleta, Math, Fmt, Files, Str, Rt;
+
+const
+    (* WCAG's least contrast for body text, which accent text must reach. *)
+    Readable = 4.5;
+    (* The least share of the mark kept when darkening it for text. *)
+    LeastMark = 0.3;
+    (* How much less of the mark each darkening step keeps. *)
+    Step = 0.05;
+
+    (* The tokens of slots Red to Cyan, in slot order. *)
+    Hues: [6][]const U8 = ["c-red", "c-green", "c-yellow", "c-blue", "c-magenta", "c-cyan"];
+
+(* a blended into b, 0RRGGBBH each: share of a, the rest b, each channel
+   rounded half to even. *)
+proc mix(a, b: U32; share: F64): U32;
+var i: INT; shift: U32; c: U32; x, y: F64;
+begin
+    c := 0;
+    for i := 0 to 2 do
+        shift := U32(16 - 8 * i);
+        x := F64((a shr shift) & 0FFH);
+        y := F64((b shr shift) & 0FFH);
+        c := c | (U32(Math.roundEven(x * share + y * (1.0 - share))) shl shift);
+    end;
+    return c;
+end;
+
+(* The colour accent text takes on bg: the mark, or else the cursor, if
+   either reads at Readable; failing both, the one that reads better,
+   blended towards fg, the text, until it does. So accent text keeps the
+   mark's hue where it can and is legible in every palette. *)
+proc accentInk(mark, cursor, bg, fg: U32): U32;
+var best: U32; share: F64;
+begin
+    if Paleta.ratio(mark, bg) >= Readable then return mark; end;
+    if Paleta.ratio(cursor, bg) >= Readable then return cursor; end;
+    best := mark;
+    if Paleta.ratio(cursor, bg) > Paleta.ratio(mark, bg) then best := cursor; end;
+    share := 1.0;
+    while (Paleta.ratio(best, bg) < Readable) and (share > LeastMark) do
+        share := share - Step;
+        best := mix(best, fg, share);
+    end;
+    return best;
+end;
+
+(* Prints the token name set to the colour c. *)
+proc token(name: []const U8; c: U32);
+begin
+    Fmt.print(" --{}: #{06};", [Fmt.str(name), Fmt.hex(U64(c))]);
+end;
+
+(* Prints p as the page's colour tokens, on one line. A panel, a rule
+   line and the accent's wash are the text or the mark blended into the
+   background, a little more by night, where the difference shows less. *)
+proc tokens(const p: Paleta.Palette);
+var i: INT; fg, bg, mark, cursor: U32; dark: BOOL; panel, line, wash: F64;
+begin
+    fg := p.col[Paleta.Fg];
+    bg := p.col[Paleta.Bg];
+    mark := p.col[Paleta.Mark];
+    cursor := p.col[Paleta.Cursor];
+    dark := p.mode = Paleta.Mode.dark;
+    if dark then
+        panel := 0.06; line := 0.16; wash := 0.14;
+    else
+        panel := 0.045; line := 0.13; wash := 0.12;
+    end;
+    token("bg", bg);
+    token("fg", fg);
+    token("muted", p.col[Paleta.Black + Paleta.Bright]);
+    token("panel", mix(fg, bg, panel));
+    token("line", mix(fg, bg, line));
+    token("link", p.col[Paleta.Blue]);
+    token("cursor", cursor);
+    token("mark", mark);
+    if dark then token("on-mark", bg); else token("on-mark", fg); end;
+    token("accent", mark);
+    token("accent-ink", accentInk(mark, cursor, bg, fg));
+    token("accent-wash", mix(mark, bg, wash));
+    for i := 0 to LEN(Hues) - 1 do token(Hues[i], p.col[Paleta.Red + i]); end;
+    if dark then Fmt.print(" color-scheme: dark;", []); else Fmt.print(" color-scheme: light;", []); end;
+end;
+
+(* Prints the stylesheet of the theme named on the command line. *)
+proc main*;
+var i: INT; name: []const U8; th: Paleta.Theme; dark: Paleta.Palette;
+begin
+    name := Files.arg(1);
+    i := 0;
+    while (i < Paleta.Themes) and not Str.eq(Paleta.themeName(Paleta.Theme(i)), name) do i := i + 1; end;
+    if (Files.argCount() # 2) or (i = Paleta.Themes) then
+        Rt.stop("usage: pages catppuccin|duck|cyberpunk|phosphor");
+    end;
+    th := Paleta.Theme(i);
+    dark := Paleta.themePalette(th, Paleta.Mode.dark);
+    Fmt.print("/* tinta's {} palette, written by src/Pages.raz from src/Paleta.raz. */\n:root {{",
+        [Fmt.str(name)]);
+    tokens(Paleta.themePalette(th, Paleta.Mode.light));
+    Fmt.print(" }}\n@media (prefers-color-scheme: dark) {{ :root:not([data-theme='light']) {{", []);
+    tokens(dark);
+    Fmt.print(" }} }}\n:root[data-theme='dark'] {{", []);
+    tokens(dark);
+    Fmt.print(" }}\n", []);
+end;
+
+end Pages.

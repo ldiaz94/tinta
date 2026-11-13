@@ -89,7 +89,7 @@ the module's.
 
 ## How it works
 
-3 ideas, a module each.
+4 ideas, a module each.
 
 **1. The palette is colours, in one property: `src/Paleta.raz`.** The
 palette is 20 colours in a fixed order. Slots 0 to 15 are the ANSI
@@ -181,6 +181,25 @@ longs, 8 bytes each on x86_64, not 4. Copy them one by one into `U32`s
 before `Paleta.decode`; Xlib's buffer handed over as it is reads every
 other item as zero.
 
+**4. Web pages take the same colours: `src/Pages.raz`.** tinta-pages,
+our style for pages people read (proposals, reports, write-ups), lives in
+`pages/`: `tinta.css` and `tinta.js`, which take every colour from tokens
+on `:root`, and `palette-NAME.css`, one per theme, with those tokens for
+its light palette and, for a viewer in dark mode, its dark one.
+`robbie pages` writes them with `build/pages NAME`, from Paleta; most
+tokens are slots as they stand, a few are blends (a panel is the
+background with a little of the text), and accent text is darkened
+where the mark reads below 4.5:1. `robbie check` fails if they are
+stale. A page links them from the repository through jsDelivr, at a
+tag, so a later change never restyles a page already made:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ldiaz94/tinta@pages-1/pages/palette-duck.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ldiaz94/tinta@pages-1/pages/tinta.css">
+<div class="t-page"><main class="t-main"> ... </main></div>
+<script src="https://cdn.jsdelivr.net/gh/ldiaz94/tinta@pages-1/pages/tinta.js"></script>
+```
+
 ## Correctness
 
 - **Same as the Pascal tinta.** Output, messages, exit codes and the
@@ -216,14 +235,15 @@ other item as zero.
   `xvfb-run`, `xprop`, `dbus-run-session` or `dbus-monitor` is missing;
   `test/check.cn` points `DBUS_SESSION_BUS_ADDRESS` at a bus that does
   not exist, so no test reaches the desktop's;
-- the manuals through `groff -mandoc -Tutf8 -ww -z`: no warnings.
+- the manuals through `groff -mandoc -Tutf8 -ww -z`: no warnings;
+- `pages/palette-NAME.css` against what `build/pages` writes now.
 
 ## Size
 
 `robbie loc` (by `rloc`):
 
     language    files  blank  comment  code
-    raz             3     73      202   382
+    raz             4     86      244   478
 
 The program is dynamically linked to libX11, through rx11; rdbus speaks
 D-Bus in raz.
